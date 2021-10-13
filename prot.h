@@ -1,6 +1,7 @@
 #ifndef PROT_H_
 #define PROT_H_
 
+#include "hardwareSerial.h"
 #include <stdlib.h>
 #include <stdint.h>
 
