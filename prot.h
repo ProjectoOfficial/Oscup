@@ -27,10 +27,18 @@ enum class TxCommands : uint8_t
     REBOOT = 0x05,
 };
 
+enum class ErrorCodes : uint8_t
+{
+    OK = 0,
+    LENGTH_ERROR,
+    PACKMEMMOVE_ERROR,
+    WRITE_ERROR,
+};
+
 class Prot {
     public:
         Prot(uint8_t id, uint32_t baudrate);
-        uint8_t write();
+        uint8_t write(uint8_t command, uint8_t length, uint8_t* buffer);
 
     private:
         uint8_t _id;
@@ -40,7 +48,7 @@ class Prot {
         packet_t _packet_rx;
         packet_t _packet_tx;
 
-        uint8_t pack(uint8_t id, uint8_t command, uint8_t length, uint8_t* buffer);
+        uint8_t pack(uint8_t command, uint8_t length, uint8_t* buffer);
         uint8_t *bufferize(packet_t *packet);
         uint16_t computeCRC(uint8_t* buff, uint8_t len);
 };

@@ -16,9 +16,34 @@ Prot::Prot(uint8_t id, uint32_t baudrate) {
 
 }
 
-uint8_t Prot::write() {}
+uint8_t Prot::write(uint8_t command, uint8_t length, uint8_t* payload) {
+    /*
+    * Writes data on Uart
+    * 
+    * Input: 
+    *       - command to execute on receiver
+    *       - payload length
+    *       - payload
+    */
 
-uint8_t Prot::pack(uint8_t id, uint8_t command, uint8_t length, uint8_t *buffer) {
+    if (length > MAX_PAYLOAD_LENGTH)
+        return (uint8_t)ErrorCodes::LENGTH_ERROR;
+
+    uint8_t error = pack(command, length, payload);
+
+    if (error)
+        return error;
+
+    uint8_t* buffer = bufferize(&_packet_tx);
+    try {
+        _hardware_serial->write(buffer, _packet_tx.length + 5);
+    }
+    catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR;}
+
+    return (uint8_t)ErrorCodes::OK;
+}
+
+uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
     /* prepares data to be sent and obtains the crc
     * input:
     *       - id: id of the device which has to receive the packet
@@ -27,12 +52,16 @@ uint8_t Prot::pack(uint8_t id, uint8_t command, uint8_t length, uint8_t *buffer)
     *       - buffer: payload containing data 
     */
 
-    _packet_tx.id = id;
     _packet_tx.command = command;
     _packet_tx.length = length;
-    memmove(&_packet_tx.payload, buffer, length);
+    try {
+        memmove(&_packet_tx.payload, buffer, length);
+    } 
+    catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
     _packet_tx.crc = computeCRC(bufferize(&_packet_tx), length + 3);
+
+    return (uint8_t)ErrorCodes::OK;
 }
 
 
