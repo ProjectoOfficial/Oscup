@@ -1,28 +1,90 @@
 #include "prot.h"
 
-Prot::Prot(uint8_t ID) {}
+Prot::Prot(uint8_t id, uint32_t baudrate) {
+    /*
+    * Class Constructor: creates a new HardwareSerial obj
+    * and starts the communication through begin
+    * input: 
+    *       - id of this device
+    *       - communication baudrate
+    */
+    _id = id;
+    _baudrate = baudrate;
 
-uint16_t Prot::ComputeCRC(uint8_t *buff, uint8_t len) {
-  //funzione che calcola il CRC degli ultimi due byte
-  uint16_t crc = 0xFFFF;
-  int j = 0;
-  while (j < len) {
+    _hardware_serial = new HardwareSerial(baudrate);
+    _hardware_serial->begin(baudrate);
+
+}
+
+uint8_t Prot::write() {}
+
+uint8_t Prot::pack(uint8_t id, uint8_t command, uint8_t length, uint8_t *buffer) {
+    /* prepares data to be sent and obtains the crc
+    * input:
+    *       - id: id of the device which has to receive the packet
+    *       - command: command to execute on the receiver
+    *       - length: length of the payload
+    *       - buffer: payload containing data 
+    */
+
+    _packet_tx.id = id;
+    _packet_tx.command = command;
+    _packet_tx.length = length;
+    memmove(&_packet_tx.payload, buffer, length);
+
+    _packet_tx.crc = computeCRC(bufferize(&_packet_tx), length + 3);
+}
+
+
+uint8_t *Prot::bufferize(packet_t *packet) {
+    uint8_t* buffer;
+    uint16_t len = 0;
+
+    if (packet->crc)
+        len = 5 + packet->length; // with crc
+    else
+        len = 3 + packet->length; // without crc
+
+    buffer = new uint8_t(len);
+    buffer[0] = packet->id;
+    buffer[1] = packet->command;
+    buffer[2] = packet->length;
+    for (uint8_t i = 3; i < 3 + packet->length; i++)
+        buffer[i] = packet->payload[i - 3];
+
+    if (packet->crc) {
+        buffer[len - 2] = packet->crc & 0xFF00;
+        buffer[len - 1] = packet->crc & 0x00FF;
+    }
+
+    return buffer;
+}
+
+
+uint16_t Prot::computeCRC(uint8_t *buff, uint8_t len) {
+    /*
+    * This function calculates the CRC on the packet. 
+    * Only the last two bytes are not considered. 
+    * Max packet length is 256 bytes
+    * input: 
+    *       - byte array containing the full packet - last 2 bytes
+    *       - array length
+    * output: crc calculated on the entire packet
+    */
+  uint16_t crc;
+  for(uint8_t j = 0; j < len; j++) {
     uint8_t byteValue = buff[j];
     byteValue = byteValue & 0xff;
-    uint16_t tmpCrc = (crc ^ byteValue) & 0xffff;
+    crc = (0xFFFF ^ byteValue) & 0xffff;
 
     uint8_t n = 0;
     while (n <= 7) {
-      if ((tmpCrc & 0x0001) != 0){
-        tmpCrc = tmpCrc >> 1;
-        tmpCrc = tmpCrc ^ 49061;
-      }
+      if ((crc & 0x0001) != 0)
+          crc = (crc >> 1) ^ 49061;
       else
-        tmpCrc = tmpCrc >> 1;
-      n += 1;
+          crc = crc >> 1;
+      n++;
     }
-    crc = tmpCrc;
-    j += 1;
   }
   return crc;
 }
