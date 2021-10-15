@@ -39,7 +39,7 @@ uint8_t Prot::write(uint8_t command, uint8_t length, uint8_t* payload) {
         _hardware_serial->write(buffer, _packet_tx.length + 5);
     }
     catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR;}
-
+    free(buffer);
     return (uint8_t)ErrorCodes::OK;
 }
 
@@ -59,7 +59,9 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
     } 
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
-    _packet_tx.crc = computeCRC(bufferize(&_packet_tx), length + 3);
+    uint8_t* buffer = bufferize(&_packet_tx);
+    _packet_tx.crc = computeCRC(buffer, length + 3);
+    free(buffer)
 
     return (uint8_t)ErrorCodes::OK;
 }
