@@ -8,5 +8,6 @@ Prot prot = Prot(id, 115200);
 
 void setup(){}
 void loop(){
-	prot.write(id, len, buff);
+	uint8_t errore = prot.write(id, len, buff);
+	delay(3000);
 }

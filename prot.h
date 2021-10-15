@@ -33,6 +33,7 @@ enum class ErrorCodes : uint8_t
     LENGTH_ERROR,
     PACKMEMMOVE_ERROR,
     WRITE_ERROR,
+    NULLPOINTER,
 };
 
 class Prot {
