@@ -38,6 +38,11 @@ uint8_t Prot::write(uint8_t command, uint8_t length, uint8_t* payload) {
         return error;
 
     uint8_t* buff = bufferize(&_packet_tx);
+    if(buff == NULL){
+        free(buff);
+        return (uint8_t)ErrorCodes::NULLPOINTER;
+    }
+    
     try {
         _hardware_serial->write(buff, _packet_tx.length + 5);
     }
@@ -63,6 +68,10 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
     uint8_t* buff = bufferize(&_packet_tx);
+    if(buff == NULL){
+        free(buff);
+        return (uint8_t)ErrorCodes::NULLPOINTER;
+    }
     _packet_tx.crc = computeCRC(buff, length + 3);
     free(buff);
 
@@ -80,8 +89,8 @@ uint8_t *Prot::bufferize(packet_t *packet) {
     uint8_t* buff;
     uint16_t len = 0;
     
-   if(_packet_tx == NULL)
-       return (uint8_t)ErrorCodes::NULLPOINTER;
+   if(packet == NULL)
+       return NULL;
 
     if (packet->crc)
         len = 5 + packet->length; // with crc
