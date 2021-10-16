@@ -11,12 +11,30 @@ Prot::Prot(uint8_t id, uint32_t baudrate) {
     _id = id;
     _baudrate = baudrate;
 
-    _hardware_serial = new HardwareSerial(baudrate);
-    _hardware_serial->begin(baudrate);
+    uart_port = uart_port_t::UART_NUM_0;
+    uart_rxd_pin = UART_RXD_PIN;
+    uart_txd_pin = UART_TXD_PIN;
+    uart_rts_pin = UART_RTS_PIN;
+    uart_rts_pin = UART_CTS_PIN;
+    intr_alloc_flags = 0;
 
+#if CONFIG_UART_ISR_IN_IRAM
+    intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+#endif
+
+    _uart_config = {
+        .baud_rate = baudrate,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+    uart_driver_install(uart_port, MAX_PAYLOAD_LENGTH + 1, MAX_PAYLOAD_LENGTH + 1, 0, NULL, intr_alloc_flags);
+    uart_param_config(uart_port, &_uart_config);
+    uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 }
 
-uint8_t Prot::write(uint8_t command, uint8_t length, uint8_t* payload) {
+uint8_t Prot::write(uint8_t command, uint8_t length, char* payload) {
     /*
     * Writes data on Uart
     * 
@@ -37,21 +55,27 @@ uint8_t Prot::write(uint8_t command, uint8_t length, uint8_t* payload) {
     if (error)
         return error;
 
-    uint8_t* buff = bufferize(&_packet_tx);
+    char* buff = bufferize(&_packet_tx);
     if(buff == NULL){
         free(buff);
         return (uint8_t)ErrorCodes::NULLPOINTER;
     }
-    
-    try {
-        _hardware_serial->write(buff, _packet_tx.length + 5);
+    else {
+        try {
+           uart_write_bytes(uart_port, (const char*)buff, _packet_tx.length + 5);
+        }
+        catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR; }
     }
-    catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR;}
     free(buff);
     return (uint8_t)ErrorCodes::OK;
 }
 
-uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
+uint8_t Prot::testWrite() {
+    uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
+    return (uint8_t)ErrorCodes::OK;
+}
+
+uint8_t Prot::pack(uint8_t command, uint8_t length, char *buffer) {
     /* prepares data to be sent and obtains the crc
     * input:
     *       - id: id of the device which has to receive the packet
@@ -67,7 +91,7 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
     } 
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
-    uint8_t* buff = bufferize(&_packet_tx);
+    char* buff = bufferize(&_packet_tx);
     if(buff == NULL){
         free(buff);
         return (uint8_t)ErrorCodes::NULLPOINTER;
@@ -79,14 +103,14 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, uint8_t *buffer) {
 }
 
 
-uint8_t *Prot::bufferize(packet_t *packet) {
+char *Prot::bufferize(packet_t *packet) {
     /*
      * This function converts packet's struct into an array
      * buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
      * 
      * input: a not empty packet
     */
-    uint8_t* buff;
+    char* buff;
     uint16_t len = 0;
     
    if(packet == NULL)
@@ -97,7 +121,7 @@ uint8_t *Prot::bufferize(packet_t *packet) {
     else
         len = 3 + packet->length; // without crc
 
-    buff = new uint8_t(len);
+    buff = new char(len);
     buff[0] = packet->id;
     buff[1] = packet->command;
     buff[2] = packet->length;
@@ -113,7 +137,7 @@ uint8_t *Prot::bufferize(packet_t *packet) {
 }
 
 
-uint16_t Prot::computeCRC(uint8_t *buffer, uint8_t len) {
+uint16_t Prot::computeCRC(char *buffer, uint8_t len) {
     /*
     * This function calculates the CRC on the packet. 
     * Only the last two bytes are not considered. 

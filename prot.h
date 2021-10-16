@@ -1,9 +1,16 @@
 #ifndef PROT_H_
 #define PROT_H_
 
-#include "hardwareSerial.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+
+#include "driver/uart.h"
+#define UART_RXD_PIN 3
+#define UART_TXD_PIN 1
+#define UART_RTS_PIN 0
+#define UART_CTS_PIN 0
 
 #define MAX_PAYLOAD_LENGTH 255
 
@@ -11,7 +18,7 @@ typedef struct {
   uint8_t id;
   uint8_t command;
   uint8_t length;
-  uint8_t payload[MAX_PAYLOAD_LENGTH];
+  char payload[MAX_PAYLOAD_LENGTH];
   uint16_t crc;
 } packet_t;
 
@@ -39,19 +46,29 @@ enum class ErrorCodes : uint8_t
 class Prot {
     public:
         Prot(uint8_t id, uint32_t baudrate);
-        uint8_t write(uint8_t command, uint8_t length, uint8_t* buffer);
+        uint8_t write(uint8_t command, uint8_t length, char* buffer);
+        uint8_t testWrite();
 
     private:
         uint8_t _id;
         uint32_t _baudrate;
-        HardwareSerial *_hardware_serial;
 
         packet_t _packet_rx;
         packet_t _packet_tx;
 
-        uint8_t pack(uint8_t command, uint8_t length, uint8_t* buffer);
-        uint8_t *bufferize(packet_t *packet);
-        uint16_t computeCRC(uint8_t* buff, uint8_t len);
+        uart_config_t _uart_config;
+        uart_port_t uart_port;
+
+        int uart_rxd_pin;
+        int uart_txd_pin;
+        int uart_rts_pin;
+        int uart_cts_pin;
+
+        int intr_alloc_flags;
+
+        uint8_t pack(uint8_t command, uint8_t length, char* buffer);
+        char *bufferize(packet_t *packet);
+        uint16_t computeCRC(char* buff, uint8_t len);
 };
 
 #endif /*PROT_H*/
