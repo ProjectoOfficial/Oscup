@@ -2,8 +2,9 @@
 
 Prot::Prot(uint8_t id, uint32_t baudrate) {
     /*
-    * Class Constructor: creates a new HardwareSerial obj
-    * and starts the communication through begin
+    * Class Constructor: initializes the UART of ESP32
+    * by defining the hardware port and hardware pins
+    * and other UART's parameters
     * input: 
     *       - id of this device
     *       - communication baudrate
@@ -55,18 +56,11 @@ uint8_t Prot::write(uint8_t command, uint8_t length, char* payload) {
     if (error)
         return error;
 
-    char* buff = bufferize(&_packet_tx);
-    if(buff == NULL){
-        free(buff);
-        return (uint8_t)ErrorCodes::NULLPOINTER;
+    bufferize(&_packet_tx);
+    try {
+        uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
     }
-    else {
-        try {
-           uart_write_bytes(uart_port, (const char*)buff, _packet_tx.length + 5);
-        }
-        catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR; }
-    }
-    free(buff);
+    catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR; }
     return (uint8_t)ErrorCodes::OK;
 }
 
@@ -91,49 +85,40 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, char *buffer) {
     } 
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
-    char* buff = bufferize(&_packet_tx);
-    if(buff == NULL){
-        free(buff);
-        return (uint8_t)ErrorCodes::NULLPOINTER;
-    }
-    _packet_tx.crc = computeCRC(buff, length + 3);
-    free(buff);
+    bufferize(&_packet_tx);
+    _packet_tx.crc = computeCRC(_TXBuffer, length + 3);
 
     return (uint8_t)ErrorCodes::OK;
 }
 
 
-char *Prot::bufferize(packet_t *packet) {
+void Prot::bufferize(packet_t *packet) {
     /*
-     * This function converts packet's struct into an array
+     * This function converts packet's struct into an array, attribute of the class
      * buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
      * 
      * input: a not empty packet
     */
-    char* buff;
-    uint16_t len = 0;
-    
+    int len;
+
    if(packet == NULL)
-       return NULL;
+       return;
 
     if (packet->crc)
         len = 5 + packet->length; // with crc
     else
         len = 3 + packet->length; // without crc
 
-    buff = new char(len);
-    buff[0] = packet->id;
-    buff[1] = packet->command;
-    buff[2] = packet->length;
+    _TXBuffer[0] = packet->id;
+    _TXBuffer[1] = packet->command;
+    _TXBuffer[2] = packet->length;
     for (uint8_t i = 3; i < 3 + packet->length; i++)
-        buff[i] = packet->payload[i - 3];
+        _TXBuffer[i] = packet->payload[i - 3];
 
     if (packet->crc) {
-        buff[len - 2] = packet->crc & 0xFF00;
-        buff[len - 1] = packet->crc & 0x00FF;
+        _TXBuffer[len - 2] = packet->crc & 0xFF00;
+        _TXBuffer[len - 1] = packet->crc & 0x00FF;
     }
-
-    return buff;
 }
 
 

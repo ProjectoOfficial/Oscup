@@ -56,6 +56,9 @@ class Prot {
         packet_t _packet_rx;
         packet_t _packet_tx;
 
+        char _RXBuffer[MAX_PAYLOAD_LENGTH + 5];
+        char _TXBuffer[MAX_PAYLOAD_LENGTH + 5];
+
         uart_config_t _uart_config;
         uart_port_t uart_port;
 
@@ -67,7 +70,7 @@ class Prot {
         int intr_alloc_flags;
 
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
-        char *bufferize(packet_t *packet);
+        void bufferize(packet_t *packet);
         uint16_t computeCRC(char* buff, uint8_t len);
 };
 
