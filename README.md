@@ -3,7 +3,7 @@
  [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1719da4d7df5455d8dbb4340c428f851)](https://www.codacy.com/app/alichtman/shallow-backup?)
  [![License](https://poser.pugx.org/aimeos/aimeos-typo3/license.svg)](https://packagist.org/packages/aimeos/aimeos-typo3)
  [![Latest Unstable Version](http://poser.pugx.org/pierreboissinot/gsheet-adapter/v/unstable)](https://packagist.org/packages/pierreboissinot/gsheet-adapter)
-
+ [![Check Arduino status](https://github.com/arduino-libraries/NTPClient/actions/workflows/check-arduino.yml/badge.svg)](https://github.com/arduino-libraries/NTPClient/actions/workflows/check-arduino.yml)
  Contents
 ========
 
