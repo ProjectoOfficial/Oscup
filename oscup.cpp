@@ -1,3 +1,9 @@
+/*
+* Oscup: Open Source Custom Uart Protocol
+* This Software was release under: GPL-3.0 License
+* Copyright © 2021 Daniel Rossi & Riccardo Salami
+*/
+
 #include "oscup.h"
 
 Oscup::Oscup(uint8_t id, uint32_t baudrate) {

@@ -1,5 +1,7 @@
 /*
-* 
+* Oscup: Open Source Custom Uart Protocol
+* This Software was release under: GPL-3.0 License
+* Copyright © 2021 Daniel Rossi & Riccardo Salami
 */
 #ifndef OSCUP_H_
 #define OSCUP_H_
