@@ -1,5 +1,8 @@
-#ifndef PROT_H_
-#define PROT_H_
+/*
+* 
+*/
+#ifndef OSCUP_H_
+#define OSCUP_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +39,7 @@ enum class TxCommands : uint8_t
 
 enum class ErrorCodes : uint8_t
 {
+    READ_ERROR,
     OK = 0,
     LENGTH_ERROR,
     PACKMEMMOVE_ERROR,
@@ -43,11 +47,12 @@ enum class ErrorCodes : uint8_t
     NULLPOINTER,
 };
 
-class Prot {
+class Oscup {
     public:
-        Prot(uint8_t id, uint32_t baudrate);
-        uint8_t write(uint8_t command, uint8_t length, char* buffer);
+        Oscup(uint8_t id, uint32_t baudrate);
         uint8_t testWrite();
+        uint8_t write(uint8_t command, uint8_t length, char* buffer);
+        uint8_t read(packet_t* packet);
 
     private:
         uint8_t _id;
@@ -71,7 +76,8 @@ class Prot {
 
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
+        void unpack(uint16_t len);
         uint16_t computeCRC(char* buff, uint8_t len);
 };
 
-#endif /*PROT_H*/
+#endif /*OSCUP_H*/

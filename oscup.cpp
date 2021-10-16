@@ -1,6 +1,6 @@
-#include "prot.h"
+#include "oscup.h"
 
-Prot::Prot(uint8_t id, uint32_t baudrate) {
+Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     /*
     * Class Constructor: initializes the UART of ESP32
     * by defining the hardware port and hardware pins
@@ -35,7 +35,17 @@ Prot::Prot(uint8_t id, uint32_t baudrate) {
     uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 }
 
-uint8_t Prot::write(uint8_t command, uint8_t length, char* payload) {
+
+uint8_t Oscup::testWrite() {
+    /*
+    * test write function which is usefull to see if dependencies are working
+    */
+    uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
+    return (uint8_t)ErrorCodes::OK;
+}
+
+
+uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     /*
     * Writes data on Uart
     * 
@@ -64,12 +74,8 @@ uint8_t Prot::write(uint8_t command, uint8_t length, char* payload) {
     return (uint8_t)ErrorCodes::OK;
 }
 
-uint8_t Prot::testWrite() {
-    uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
-    return (uint8_t)ErrorCodes::OK;
-}
 
-uint8_t Prot::pack(uint8_t command, uint8_t length, char *buffer) {
+uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
     /* prepares data to be sent and obtains the crc
     * input:
     *       - id: id of the device which has to receive the packet
@@ -92,7 +98,7 @@ uint8_t Prot::pack(uint8_t command, uint8_t length, char *buffer) {
 }
 
 
-void Prot::bufferize(packet_t *packet) {
+void Oscup::bufferize(packet_t *packet) {
     /*
      * This function converts packet's struct into an array, attribute of the class
      * buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
@@ -122,7 +128,48 @@ void Prot::bufferize(packet_t *packet) {
 }
 
 
-uint16_t Prot::computeCRC(char *buffer, uint8_t len) {
+uint8_t Oscup::read(packet_t *packet) {
+    /*
+    * this function returns the length of the data (RXbuffer, not payload) read,
+    * otherwiese a negative error code.
+    * 
+    * input:
+    *       - a packet struct where will be available the readed data
+    */
+    uint16_t len;
+    try {
+        len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
+    }
+    catch (int e) {
+        return (uint8_t)ErrorCodes::READ_ERROR;
+    }
+    unpack(len);
+
+    packet->id = _packet_rx.id;
+    packet->command = _packet_rx.command;
+    packet->length = len - 5;
+    try {
+        memmove(packet->payload, &_packet_rx.payload, packet->length);
+    }
+    catch (int e) { return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR; }
+    packet->crc = _packet_rx.crc;
+
+    return len;
+}
+
+
+void Oscup::unpack(uint16_t len) {
+    _packet_rx.id = _RXBuffer[0];
+    _packet_rx.command = _RXBuffer[1];
+    _packet_rx.length = _RXBuffer[2];
+    for (int i = 3; i < len - 3; i++)
+        _packet_rx.payload[i - 3] = _RXBuffer[i];
+    _packet_rx.crc = (_RXBuffer[len - 2] & 0xFF00) || (_RXBuffer[len - 1] & 0x00FF);
+
+}
+
+
+uint16_t Oscup::computeCRC(char *buffer, uint8_t len) {
     /*
     * This function calculates the CRC on the packet. 
     * Only the last two bytes are not considered. 
