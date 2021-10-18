@@ -1,17 +1,25 @@
 /*
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
-* Copyright © 2021 Daniel Rossi & Riccardo Salami
+* Copyright ï¿½ 2021 Daniel Rossi & Riccardo Salami
 * Version: ALPHA 0.1.1
 */
 #ifndef OSCUP_H_
 #define OSCUP_H_
 
+#define _POSIX_C_SOURCE 200809L
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
+#include <math.h>
 
+/*****************************************************
+************************ UART ************************
+******************************************************/
 #include "driver/uart.h"
 #define UART_RXD_PIN 3
 #define UART_TXD_PIN 1
@@ -20,6 +28,10 @@
 
 #define MAX_PAYLOAD_LENGTH 255
 
+#define MAX_ACK_WAIT 5
+#define MAX_PACKET_RESEND 3
+
+/********************** PACKET **********************/
 typedef struct {
   uint8_t id;
   uint8_t command;
@@ -28,6 +40,7 @@ typedef struct {
   uint16_t crc;
 } packet_t;
 
+/******************* COMMANDS ***********************/
 enum class RxCommands : uint8_t
 {
   ACK = 0x0A,
@@ -40,9 +53,13 @@ enum class TxCommands : uint8_t
     REBOOT = 0x05,
 };
 
+
+/*****************************************************
+******************** ERROR CODES *********************
+******************************************************/
 enum class ErrorCodes : uint8_t
 {
-    READ_ERROR,
+    UARTREAD_ERROR,
     OK = 0,
     LENGTH_ERROR,
     PACKMEMMOVE_ERROR,
@@ -50,6 +67,10 @@ enum class ErrorCodes : uint8_t
     NULLPOINTER,
 };
 
+
+/*****************************************************
+************************ CLASS ***********************
+******************************************************/
 class Oscup {
     public:
         Oscup(uint8_t id, uint32_t baudrate);
@@ -80,7 +101,8 @@ class Oscup {
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack(uint16_t len);
-        uint16_t computeCRC(char* buff, uint8_t len);
+        uint16_t computeCRC(char* buff, uint16_t len);
+        long getms();
 };
 
 #endif /*OSCUP_H*/

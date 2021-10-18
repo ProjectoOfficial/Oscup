@@ -1,7 +1,7 @@
 /*
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
-* Copyright © 2021 Daniel Rossi & Riccardo Salami
+* Copyright ï¿½ 2021 Daniel Rossi & Riccardo Salami
 * Version: ALPHA 0.1.1
 */
 
@@ -74,10 +74,16 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         return error;
 
     bufferize(&_packet_tx);
-    try {
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-    }
-    catch (int e) { return (uint8_t)ErrorCodes::WRITE_ERROR; }
+    uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+
+    uint16_t len;
+    uint16_t crc;
+    do {
+    len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
+    unpack(len);
+    crc = computeCRC(_RXBuffer, len - 2);
+    } while(!_packet_rx.crc == crc);
+
     return (uint8_t)ErrorCodes::OK;
 }
 
@@ -144,12 +150,7 @@ uint8_t Oscup::read(packet_t *packet) {
     *       - a packet struct where will be available the readed data
     */
     uint16_t len;
-    try {
-        len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
-    }
-    catch (int e) {
-        return (uint8_t)ErrorCodes::READ_ERROR;
-    }
+    len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
     unpack(len);
 
     packet->id = _packet_rx.id;
@@ -160,7 +161,6 @@ uint8_t Oscup::read(packet_t *packet) {
     }
     catch (int e) { return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR; }
     packet->crc = _packet_rx.crc;
-
     return len;
 }
 
@@ -172,11 +172,10 @@ void Oscup::unpack(uint16_t len) {
     for (int i = 3; i < len - 3; i++)
         _packet_rx.payload[i - 3] = _RXBuffer[i];
     _packet_rx.crc = (_RXBuffer[len - 2] & 0xFF00) || (_RXBuffer[len - 1] & 0x00FF);
-
 }
 
 
-uint16_t Oscup::computeCRC(char *buffer, uint8_t len) {
+uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
     /*
     * This function calculates the CRC on the packet. 
     * Only the last two bytes are not considered. 
@@ -191,7 +190,7 @@ uint16_t Oscup::computeCRC(char *buffer, uint8_t len) {
   if(buffer == NULL)
     return (uint8_t)ErrorCodes::NULLPOINTER;
 
-  for(uint8_t j = 0; j < len; j++) {
+  for(uint16_t j = 0; j < len; j++) {
     uint8_t byteValue = buffer[j];
     byteValue = byteValue & 0xff;
     crc = (0xFFFF ^ byteValue) & 0xffff;
@@ -206,4 +205,13 @@ uint16_t Oscup::computeCRC(char *buffer, uint8_t len) {
     }
   }
   return crc;
+}
+
+long Oscup::getms(){
+    
+    struct timespec spec;
+    long ms = 0;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    ms = round(spec.tv_nsec / 1.0e6);
+    return ms;
 }
