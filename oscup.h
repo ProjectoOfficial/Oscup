@@ -7,20 +7,20 @@
 #ifndef OSCUP_H_
 #define OSCUP_H_
 
-#define _POSIX_C_SOURCE 200809L
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
-#include <math.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*****************************************************
 ************************ UART ************************
 ******************************************************/
 #include "driver/uart.h"
+#include "driver/timer.h"
 #define UART_RXD_PIN 3
 #define UART_TXD_PIN 1
 #define UART_RTS_PIN 0
@@ -28,6 +28,10 @@
 
 #define MAX_PAYLOAD_LENGTH 255
 
+#define TIMER_PRESCALER_240MHZ 239
+#define TIMER_PRESCALER_160MHZ 159
+#define TIMER_PRESCALER_80MHZ   x79
+#define TIMER_PRESCALER_40MHZ   39
 #define MAX_ACK_WAIT 5
 #define MAX_PACKET_RESEND 3
 
@@ -91,6 +95,8 @@ class Oscup {
         uart_config_t _uart_config;
         uart_port_t uart_port;
 
+        
+
         int uart_rxd_pin;
         int uart_txd_pin;
         int uart_rts_pin;
@@ -98,11 +104,17 @@ class Oscup {
 
         int intr_alloc_flags;
 
+        volatile uint16_t time;
+
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack(uint16_t len);
         uint16_t computeCRC(char* buff, uint16_t len);
-        long getms();
+        uint16_t getms();
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*OSCUP_H*/

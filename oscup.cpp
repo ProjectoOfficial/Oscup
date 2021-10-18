@@ -207,11 +207,7 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
   return crc;
 }
 
-long Oscup::getms(){
-    
-    struct timespec spec;
-    long ms = 0;
-    clock_gettime(CLOCK_REALTIME, &spec);
-    ms = round(spec.tv_nsec / 1.0e6);
+uint16_t Oscup::getms(){
+    uint16_t ms = 1;
     return ms;
 }
