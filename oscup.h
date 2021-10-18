@@ -16,11 +16,8 @@
 extern "C" {
 #endif
 
-/*****************************************************
-************************ UART ************************
-******************************************************/
+/*********************** UART ************************/
 #include "driver/uart.h"
-#include "driver/timer.h"
 #define UART_RXD_PIN 3
 #define UART_TXD_PIN 1
 #define UART_RTS_PIN 0
@@ -28,12 +25,21 @@ extern "C" {
 
 #define MAX_PAYLOAD_LENGTH 255
 
+/********************** TIMER ***********************/
+#include "driver/timer.h"
 #define TIMER_PRESCALER_240MHZ 239
 #define TIMER_PRESCALER_160MHZ 159
-#define TIMER_PRESCALER_80MHZ   x79
+#define TIMER_PRESCALER_80MHZ   79
 #define TIMER_PRESCALER_40MHZ   39
+
 #define MAX_ACK_WAIT 5
 #define MAX_PACKET_RESEND 3
+typedef struct {
+    timer_group_t group;
+    timer_idx_t index;
+    int alarm_interval;
+    bool auto_reload;
+} timer_info_t;
 
 /********************** PACKET **********************/
 typedef struct {
@@ -58,9 +64,7 @@ enum class TxCommands : uint8_t
 };
 
 
-/*****************************************************
-******************** ERROR CODES *********************
-******************************************************/
+/******************* ERROR CODES ********************/
 enum class ErrorCodes : uint8_t
 {
     UARTREAD_ERROR,
@@ -73,7 +77,7 @@ enum class ErrorCodes : uint8_t
 
 
 /*****************************************************
-************************ CLASS ***********************
+************************ OSCUP ***********************
 ******************************************************/
 class Oscup {
     public:
@@ -93,9 +97,7 @@ class Oscup {
         char _TXBuffer[MAX_PAYLOAD_LENGTH + 5];
 
         uart_config_t _uart_config;
-        uart_port_t uart_port;
-
-        
+        uart_port_t uart_port;        
 
         int uart_rxd_pin;
         int uart_txd_pin;
@@ -104,8 +106,11 @@ class Oscup {
 
         int intr_alloc_flags;
 
-        volatile uint16_t time;
+        timer_config_t _timer_config;
+        timer_info_t _timer_info;
+        uint64_t _time;
 
+        void tim_init(int prescaler);  
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack(uint16_t len);

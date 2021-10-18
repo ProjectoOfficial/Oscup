@@ -19,6 +19,7 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     _id = id;
     _baudrate = baudrate;
 
+    // UART init
     uart_port = uart_port_t::UART_NUM_0;
     uart_rxd_pin = UART_RXD_PIN;
     uart_txd_pin = UART_TXD_PIN;
@@ -40,8 +41,31 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     uart_driver_install(uart_port, MAX_PAYLOAD_LENGTH + 1, MAX_PAYLOAD_LENGTH + 1, 0, NULL, intr_alloc_flags);
     uart_param_config(uart_port, &_uart_config);
     uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
+
+    // TIMER init
+    _timer_info.group = TIMER_GROUP_0;
+    _timer_info.index = TIMER_0;
+    _timer_info.auto_reload = true;
+    _timer_info.alarm_interval = 1;
+    tim_init(TIMER_PRESCALER_240MHZ);
 }
 
+
+void Oscup::tim_init(int prescaler){
+    _timer_config.divider = prescaler;
+    _timer_config.counter_dir = TIMER_COUNT_UP;
+    _timer_config.counter_en = TIMER_PAUSE;
+    _timer_config.alarm_en = TIMER_ALARM_EN;
+    _timer_config.auto_reload = _timer_info.auto_reload;
+
+    timer_init(_timer_info.group, _timer_info.index, &_timer_config);
+
+    timer_set_counter_value(_timer_info.group, _timer_info.index, 0);
+    timer_set_alarm_value(_timer_info.group, _timer_info.index, _timer_info.alarm_interval);
+    timer_enable_intr(_timer_info.group, _timer_info.index);
+    //timer_isr_callback_add(_timer_info.group, _timer_info.index, timer_group_isr_callback, &_timer_info, 0);
+    timer_start(_timer_info.group, _timer_info.index);
+}
 
 uint8_t Oscup::testWrite() {
     /*
