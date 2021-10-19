@@ -37,9 +37,6 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
-    uart_driver_install(uart_port, MAX_PAYLOAD_LENGTH + 1, MAX_PAYLOAD_LENGTH + 1, 0, NULL, intr_alloc_flags);
-    uart_param_config(uart_port, &_uart_config);
-    uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 
     // TIMER init
     _timer_info.group = TIMER_GROUP_1;
@@ -47,6 +44,12 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     _timer_info.auto_reload = true;
     _timer_info.alarm_value = 0;
     tim_init(TIMER_PRESCALER_80MHZ); //APB should be 80MHz
+}
+
+void Oscup::begin(){
+    uart_driver_install(uart_port, MAX_PAYLOAD_LENGTH + 1, MAX_PAYLOAD_LENGTH + 1, 0, NULL, intr_alloc_flags);
+    uart_param_config(uart_port, &_uart_config);
+    uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 }
 
 
@@ -257,4 +260,8 @@ uint64_t Oscup::get_timer(){
     uint64_t timval = 0;
     timer_get_counter_value(_timer_info.group, _timer_info.index, &timval);  
     return timval;
+}
+
+uint64_t Oscup::get_APB_clk(){
+    return (APB_CLK_FREQ);
 }

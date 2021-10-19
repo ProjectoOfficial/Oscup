@@ -13,11 +13,19 @@ while True:
     else:
         if data != b'':
             try:
-                #value = struct.unpack('Q', data[2:len(data)-3])
-                #print(value)
-                #sleep(0.5)
+                ''' extracts uint64_t from payload '''
+                value = struct.unpack('Q', data[3:len(data)-2])
+                print(value)
 
-                print("".join((["0x" + str(b) + " " for b in data])))
+                ''' hex format '''
+                #print("".join([str(hex(b)) + " " for b in data]))
+
+                ''' hex just of the data we are converting'''
+                #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
+
+
+                ''' sleep is not mandatory '''
+                #sleep(0.5)
             except:
                 pass
             data = b''

@@ -2,7 +2,7 @@
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
 * Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 0.1.1
+* Version: ALPHA 1.0.0
 */
 #ifndef OSCUP_H_
 #define OSCUP_H_
@@ -11,10 +11,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,10 +27,10 @@ extern "C" {
 
 /********************** TIMER ***********************/
 #include "driver/timer.h"
-#define TIMER_PRESCALER_240MHZ 239
-#define TIMER_PRESCALER_160MHZ 159
-#define TIMER_PRESCALER_80MHZ   79
-#define TIMER_PRESCALER_40MHZ   39
+#define TIMER_PRESCALER_240MHZ 23900
+#define TIMER_PRESCALER_160MHZ 15900
+#define TIMER_PRESCALER_80MHZ   7900
+#define TIMER_PRESCALER_40MHZ   3900
 
 #define MAX_ACK_WAIT 5
 #define MAX_PACKET_RESEND 3
@@ -59,14 +55,17 @@ typedef struct {
 /******************* COMMANDS ***********************/
 enum class RxCommands : uint8_t
 {
-  ACK = 0x0A,
-  NACK = 0x0B,
+  ACK = 0xFE,
+  NACK = 0xFF,
 };
 
 enum class TxCommands : uint8_t
 {
-    READ = 0x01,
-    REBOOT = 0x05,
+    // SHARE: just for sharing data with another device
+    SHARE = 0x01,
+
+    // CONFIRM: this data are relevant for the other device
+    CONFIRM = 0x02,
 };
 
 
@@ -88,10 +87,12 @@ enum class ErrorCodes : uint8_t
 class Oscup {
     public:
         Oscup(uint8_t id, uint32_t baudrate);
+        void begin();
         uint8_t testWrite();
         uint8_t write(uint8_t command, uint8_t length, char* buffer);
         uint8_t read(packet_t* packet);
         uint64_t get_timer();
+        uint64_t get_APB_clk();
 
     private:
         uint8_t _id;
