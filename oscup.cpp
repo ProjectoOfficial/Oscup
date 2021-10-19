@@ -8,13 +8,11 @@
 #include "oscup.h"
 
 Oscup::Oscup(uint8_t id, uint32_t baudrate) {
-    /*
-    * Class Constructor: initializes the UART of ESP32
-    * by defining the hardware port and hardware pins
-    * and other UART's parameters
-    * input: 
-    *       - id of this device
-    *       - communication baudrate
+    /* @brief    initializes the UART of ESP32 by defining the hardware port and hardware pins
+    *           and other UART's parameters
+    *  
+    *  @param    id of this device
+    *  @param    communication baudrate
     */
     _id = id;
     _baudrate = baudrate;
@@ -53,6 +51,10 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
 
 
 void Oscup::tim_init(int prescaler){
+    /* @brief initializes the timer and its variables
+    *   
+    *  @param prescaler used for APB frequency scaling
+    */
     _timer_config.divider = prescaler;
     _timer_config.counter_dir = TIMER_COUNT_UP;
     _timer_config.counter_en = true;
@@ -71,8 +73,9 @@ void Oscup::tim_init(int prescaler){
 
 
 uint8_t Oscup::testWrite() {
-    /*
-    * test write function which is usefull to see if dependencies are working
+    /*  @brief test write function which is usefull to see if dependencies are working
+    *
+    *   @return it returns an error code about write
     */
     uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
     return (uint8_t)ErrorCodes::OK;
@@ -80,13 +83,13 @@ uint8_t Oscup::testWrite() {
 
 
 uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
-    /*
-    * Writes data on Uart
+    /* @brief Writes data on Uart
     * 
-    * Input: 
-    *       - command to execute on receiver
-    *       - payload length
-    *       - payload
+    * @param command it is command to execute on receiver
+    * @param length payload length
+    * @param payload the payload buffer
+    * 
+    * @return it returns feedback on writing result
     */
 
     if (length > MAX_PAYLOAD_LENGTH)
@@ -122,6 +125,8 @@ uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
     *  @param command command to execute on the receiver
     *  @param length length of the payload
     *  @param buffer payload containing data 
+    * 
+    *  @return it returns feedback on writing result
     */
 
     _packet_tx.command = command;
@@ -172,6 +177,8 @@ uint8_t Oscup::read(packet_t *packet) {
     *           otherwiese a negative error code.
     * 
     *  @param *packet packet struct where will be available the readed data
+    * 
+    *  @return it returns feedback on writing result
     */
     uint16_t len;
     len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
@@ -190,6 +197,10 @@ uint8_t Oscup::read(packet_t *packet) {
 
 
 void Oscup::unpack(uint16_t len) {
+    /* @brief it unpacks data incoming from UART
+    *
+    *  @param len it is the lenght of the received buffer
+    */
     _packet_rx.id = _RXBuffer[0];
     _packet_rx.command = _RXBuffer[1];
     _packet_rx.length = _RXBuffer[2];
