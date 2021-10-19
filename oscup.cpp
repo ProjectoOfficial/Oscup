@@ -116,12 +116,12 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
 
 
 uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
-    /* prepares data to be sent and obtains the crc
-    * input:
-    *       - id: id of the device which has to receive the packet
-    *       - command: command to execute on the receiver
-    *       - length: length of the payload
-    *       - buffer: payload containing data 
+    /* @brief prepares data to be sent and obtains the crc
+    * 
+    *  @param id id of the device which has to receive the packet
+    *  @param command command to execute on the receiver
+    *  @param length length of the payload
+    *  @param buffer payload containing data 
     */
 
     _packet_tx.command = command;
@@ -139,11 +139,10 @@ uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
 
 
 void Oscup::bufferize(packet_t *packet) {
-    /*
-     * This function converts packet's struct into an array, attribute of the class
-     * buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
+    /* @brief   This function converts packet's struct into an array, attribute of the class
+     *          buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
      * 
-     * input: a not empty packet
+     * @param packet a not empty packet
     */
     int len;
 
@@ -169,12 +168,10 @@ void Oscup::bufferize(packet_t *packet) {
 
 
 uint8_t Oscup::read(packet_t *packet) {
-    /*
-    * this function returns the length of the data (RXbuffer, not payload) read,
-    * otherwiese a negative error code.
+    /* @brief   this function returns the length of the data (RXbuffer, not payload) read,
+    *           otherwiese a negative error code.
     * 
-    * input:
-    *       - a packet struct where will be available the readed data
+    *  @param *packet packet struct where will be available the readed data
     */
     uint16_t len;
     len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
@@ -203,14 +200,14 @@ void Oscup::unpack(uint16_t len) {
 
 
 uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
-    /*
-    * This function calculates the CRC on the packet. 
-    * Only the last two bytes are not considered. 
-    * Max packet length is 256 bytes
-    * input: 
-    *       - byte array containing the full packet - last 2 bytes
-    *       - array length
-    * output: crc calculated on the entire packet
+    /* @brief   This function calculates the CRC on the packet. 
+    *           Only the last two bytes are not considered. 
+    *           Max packet length is 256 bytes
+    * 
+    *  @param buffer byte array containing the full packet - last 2 bytes
+    *  @param len array length
+    * 
+    *  @return  crc calculated on the entire packet
     */
   uint16_t crc;
 
@@ -235,7 +232,11 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
 }
 
 uint64_t Oscup::get_timer(){
-    //useful functions
-    timer_get_counter_value(_timer_info.group,_timer_info.index, &timval);  
+    /* @brief returns the value of the hardware counter timer
+    *  
+    *  @return uint64_t counter value    
+    */
+    uint64_t timval = 0;
+    timer_get_counter_value(_timer_info.group, _timer_info.index, &timval);  
     return timval;
 }

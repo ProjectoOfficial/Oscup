@@ -115,7 +115,6 @@ class Oscup {
 
         timer_config_t _timer_config;
         timer_info_t _timer_info;
-        uint64_t timval;
 
         void tim_init(int prescaler);  
         static bool IRAM_ATTR timer_group_isr_callback(void *args);
