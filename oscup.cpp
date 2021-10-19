@@ -43,29 +43,32 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 
     // TIMER init
-    _timer_info.group = TIMER_GROUP_0;
-    _timer_info.index = TIMER_0;
+    _timer_info.group = TIMER_GROUP_1;
+    _timer_info.index = TIMER_1;
     _timer_info.auto_reload = true;
-    _timer_info.alarm_interval = 1;
-    tim_init(TIMER_PRESCALER_240MHZ);
+    _timer_info.alarm_value = 0;
+    tim_init(TIMER_PRESCALER_80MHZ); //APB should be 80MHz
+    timval = 0;
 }
 
 
 void Oscup::tim_init(int prescaler){
     _timer_config.divider = prescaler;
     _timer_config.counter_dir = TIMER_COUNT_UP;
-    _timer_config.counter_en = TIMER_PAUSE;
-    _timer_config.alarm_en = TIMER_ALARM_EN;
+    _timer_config.counter_en = true;
+    _timer_config.alarm_en = true;
     _timer_config.auto_reload = _timer_info.auto_reload;
 
     timer_init(_timer_info.group, _timer_info.index, &_timer_config);
 
     timer_set_counter_value(_timer_info.group, _timer_info.index, 0);
-    timer_set_alarm_value(_timer_info.group, _timer_info.index, _timer_info.alarm_interval);
-    timer_enable_intr(_timer_info.group, _timer_info.index);
-    //timer_isr_callback_add(_timer_info.group, _timer_info.index, timer_group_isr_callback, &_timer_info, 0);
+    timer_set_alarm_value(_timer_info.group, _timer_info.index, _timer_info.alarm_value);
+    timer_set_alarm(_timer_info.group, _timer_info.index, TIMER_ALARM_EN);
+    timer_set_counter_value(_timer_info.group, _timer_info.index, 0);
     timer_start(_timer_info.group, _timer_info.index);
+
 }
+
 
 uint8_t Oscup::testWrite() {
     /*
@@ -152,7 +155,7 @@ void Oscup::bufferize(packet_t *packet) {
     else
         len = 3 + packet->length; // without crc
 
-    _TXBuffer[0] = packet->id;
+    _TXBuffer[0] = packet->id = _id;
     _TXBuffer[1] = packet->command;
     _TXBuffer[2] = packet->length;
     for (uint8_t i = 3; i < 3 + packet->length; i++)
@@ -231,7 +234,8 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
   return crc;
 }
 
-uint16_t Oscup::getms(){
-    uint16_t ms = 1;
-    return ms;
+uint64_t Oscup::get_timer(){
+    //useful functions
+    timer_get_counter_value(_timer_info.group,_timer_info.index, &timval);  
+    return timval;
 }

@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,10 +41,12 @@ extern "C" {
 typedef struct {
     timer_group_t group;
     timer_idx_t index;
-    int alarm_interval;
+    uint64_t alarm_value;
     bool auto_reload;
 } timer_info_t;
 
+
+static xQueueHandle s_timer_queue;
 /********************** PACKET **********************/
 typedef struct {
   uint8_t id;
@@ -85,6 +91,7 @@ class Oscup {
         uint8_t testWrite();
         uint8_t write(uint8_t command, uint8_t length, char* buffer);
         uint8_t read(packet_t* packet);
+        uint64_t get_timer();
 
     private:
         uint8_t _id;
@@ -108,14 +115,14 @@ class Oscup {
 
         timer_config_t _timer_config;
         timer_info_t _timer_info;
-        uint64_t _time;
+        uint64_t timval;
 
         void tim_init(int prescaler);  
+        static bool IRAM_ATTR timer_group_isr_callback(void *args);
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack(uint16_t len);
         uint16_t computeCRC(char* buff, uint16_t len);
-        uint16_t getms();
 };
 
 #ifdef __cplusplus
