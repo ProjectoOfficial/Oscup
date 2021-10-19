@@ -14,6 +14,7 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     *  @param    id of this device
     *  @param    communication baudrate
     */
+
     _id = id;
     _baudrate = baudrate;
 
@@ -46,7 +47,6 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     _timer_info.auto_reload = true;
     _timer_info.alarm_value = 0;
     tim_init(TIMER_PRESCALER_80MHZ); //APB should be 80MHz
-    timval = 0;
 }
 
 
@@ -55,6 +55,7 @@ void Oscup::tim_init(int prescaler){
     *   
     *  @param prescaler used for APB frequency scaling
     */
+
     _timer_config.divider = prescaler;
     _timer_config.counter_dir = TIMER_COUNT_UP;
     _timer_config.counter_en = true;
@@ -77,6 +78,7 @@ uint8_t Oscup::testWrite() {
     *
     *   @return it returns an error code about write
     */
+
     uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
     return (uint8_t)ErrorCodes::OK;
 }
@@ -149,7 +151,8 @@ void Oscup::bufferize(packet_t *packet) {
      * 
      * @param packet a not empty packet
     */
-    int len;
+
+   int len;
 
    if(packet == NULL)
        return;
@@ -180,6 +183,7 @@ uint8_t Oscup::read(packet_t *packet) {
     * 
     *  @return it returns feedback on writing result
     */
+
     uint16_t len;
     len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
     unpack(len);
@@ -201,6 +205,7 @@ void Oscup::unpack(uint16_t len) {
     *
     *  @param len it is the lenght of the received buffer
     */
+
     _packet_rx.id = _RXBuffer[0];
     _packet_rx.command = _RXBuffer[1];
     _packet_rx.length = _RXBuffer[2];
@@ -220,6 +225,7 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
     * 
     *  @return  crc calculated on the entire packet
     */
+   
   uint16_t crc;
 
   if(buffer == NULL)
@@ -247,6 +253,7 @@ uint64_t Oscup::get_timer(){
     *  
     *  @return uint64_t counter value    
     */
+
     uint64_t timval = 0;
     timer_get_counter_value(_timer_info.group, _timer_info.index, &timval);  
     return timval;
