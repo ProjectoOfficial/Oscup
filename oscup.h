@@ -27,13 +27,16 @@ extern "C" {
 
 /********************** TIMER ***********************/
 #include "driver/timer.h"
+
+// 10kHz prescalers - APB should be 80MHz
 #define TIMER_PRESCALER_240MHZ 23900
 #define TIMER_PRESCALER_160MHZ 15900
 #define TIMER_PRESCALER_80MHZ   7900
 #define TIMER_PRESCALER_40MHZ   3900
 
-#define MAX_ACK_WAIT 5
-#define MAX_PACKET_RESEND 3
+#define MAX_ACK_WAIT 150 //15ms
+#define RETRY_INTERVAL 50 //5ms
+#define MAX_ATTEMPTS 10
 typedef struct {
     timer_group_t group;
     timer_idx_t index;
@@ -42,7 +45,6 @@ typedef struct {
 } timer_info_t;
 
 
-static xQueueHandle s_timer_queue;
 /********************** PACKET **********************/
 typedef struct {
   uint8_t id;
@@ -51,6 +53,7 @@ typedef struct {
   char payload[MAX_PAYLOAD_LENGTH];
   uint16_t crc;
 } packet_t;
+
 
 /******************* COMMANDS ***********************/
 enum class RxCommands : uint8_t
@@ -78,6 +81,7 @@ enum class ErrorCodes : uint8_t
     PACKMEMMOVE_ERROR,
     WRITE_ERROR,
     NULLPOINTER,
+    ACK_TIMEOUT
 };
 
 

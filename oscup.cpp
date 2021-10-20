@@ -8,8 +8,8 @@
 #include "oscup.h"
 
 Oscup::Oscup(uint8_t id, uint32_t baudrate) {
-    /* @brief    initializes the UART of ESP32 by defining the hardware port and hardware pins
-    *           and other UART's parameters
+    /* @brief initializes the UART of ESP32 by defining the hardware port and hardware pins
+    *         and other UART's parameters
     *  
     *  @param    id of this device
     *  @param    communication baudrate
@@ -88,7 +88,9 @@ uint8_t Oscup::testWrite() {
 
 
 uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
-    /* @brief Writes data on Uart
+    /* @brief Writes data on Uart. 
+    *         If ACK does not arrive, it will retry to send data again
+    *         If NACK arrives, it will resend and delay the resend's stop time
     * 
     * @param command it is command to execute on receiver
     * @param length payload length
@@ -111,13 +113,27 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     bufferize(&_packet_tx);
     uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
 
-    uint16_t len;
     uint16_t crc;
-    do {
-    len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
-    unpack(len);
-    crc = computeCRC(_RXBuffer, len - 2);
-    } while(!_packet_rx.crc == crc);
+    int cont = 0;
+    uint64_t time_limit = MAX_ACK_WAIT;
+    uint64_t start_time = get_timer();
+    while(_packet_rx.crc != crc && (get_timer() - start_time) < time_limit && cont < MAX_ATTEMPTS) {
+        if((get_timer() - start_time) > RETRY_INTERVAL * cont){
+            uint16_t len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
+            unpack(len);
+            crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
+            if(_packet_rx.crc != crc)
+                uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+            else if(_packet_rx.command == (uint8_t)RxCommands::NACK){
+                time_limit += RETRY_INTERVAL;
+                crc = 0; //resetting crc allows another while cycle
+            }
+            cont++;
+        }
+    } 
+
+    if(_packet_rx.crc != crc)
+        return (uint8_t)ErrorCodes::ACK_TIMEOUT;
 
     return (uint8_t)ErrorCodes::OK;
 }
@@ -149,8 +165,8 @@ uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
 
 
 void Oscup::bufferize(packet_t *packet) {
-    /* @brief   This function converts packet's struct into an array, attribute of the class
-     *          buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
+    /* @brief This function converts packet's struct into an array, attribute of the class
+     *        buffer will become: [ID,Command,Len, ...... payload ...., CRC (if present))]
      * 
      * @param packet a not empty packet
     */
@@ -179,8 +195,8 @@ void Oscup::bufferize(packet_t *packet) {
 
 
 uint8_t Oscup::read(packet_t *packet) {
-    /* @brief   this function returns the length of the data (RXbuffer, not payload) read,
-    *           otherwiese a negative error code.
+    /* @brief this function returns the length of the data (RXbuffer, not payload) read,
+    *         otherwiese a negative error code.
     * 
     *  @param *packet packet struct where will be available the readed data
     * 
@@ -219,14 +235,14 @@ void Oscup::unpack(uint16_t len) {
 
 
 uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
-    /* @brief   This function calculates the CRC on the packet. 
-    *           Only the last two bytes are not considered. 
-    *           Max packet length is 256 bytes
+    /* @brief This function calculates the CRC on the packet. 
+    *         Only the last two bytes are not considered. 
+    *         Max packet length is 256 bytes
     * 
     *  @param buffer byte array containing the full packet - last 2 bytes
     *  @param len array length
     * 
-    *  @return  crc calculated on the entire packet
+    *  @return crc calculated on the entire packet
     */
    
   uint16_t crc;
@@ -263,5 +279,9 @@ uint64_t Oscup::get_timer(){
 }
 
 uint64_t Oscup::get_APB_clk(){
+    /* @brief returns the APB Clock Frequency
+    *  
+    *  @return APB clock Freq
+    */
     return (APB_CLK_FREQ);
 }
