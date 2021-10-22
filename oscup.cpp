@@ -188,15 +188,14 @@ void Oscup::bufferize(packet_t *packet) {
         _TXBuffer[i] = packet->payload[i - 3];
 
     if (packet->crc) {
-        _TXBuffer[len - 2] = packet->crc & 0xFF00;
-        _TXBuffer[len - 1] = packet->crc & 0x00FF;
+        _TXBuffer[len - 2] = packet->crc >> 8;
+        _TXBuffer[len - 1] = packet->crc & 0xFF;
     }
 }
 
 
 uint8_t Oscup::read(packet_t *packet) {
-    /* @brief this function returns the length of the data (RXbuffer, not payload) read,
-    *         otherwiese a negative error code.
+    /* @brief this function reads data incoming from UART and put them inside the packet.
     * 
     *  @param *packet packet struct where will be available the readed data
     * 
@@ -210,12 +209,9 @@ uint8_t Oscup::read(packet_t *packet) {
     packet->id = _packet_rx.id;
     packet->command = _packet_rx.command;
     packet->length = len - 5;
-    try {
-        memmove(packet->payload, &_packet_rx.payload, packet->length);
-    }
-    catch (int e) { return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR; }
+    memmove(packet->payload, &_packet_rx.payload, packet->length);
     packet->crc = _packet_rx.crc;
-    return len;
+    return (uint8_t)ErrorCodes::OK;
 }
 
 
@@ -230,7 +226,7 @@ void Oscup::unpack(uint16_t len) {
     _packet_rx.length = _RXBuffer[2];
     for (int i = 3; i < len - 3; i++)
         _packet_rx.payload[i - 3] = _RXBuffer[i];
-    _packet_rx.crc = (_RXBuffer[len - 2] & 0xFF00) || (_RXBuffer[len - 1] & 0x00FF);
+    _packet_rx.crc = (_RXBuffer[len - 2] << 8) | _RXBuffer[len - 1];
 }
 
 
@@ -245,23 +241,22 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
     *  @return crc calculated on the entire packet
     */
    
-  uint16_t crc;
+  uint16_t crc = 0xFFFF;
 
   if(buffer == NULL)
     return (uint8_t)ErrorCodes::NULLPOINTER;
 
   for(uint16_t j = 0; j < len; j++) {
     uint8_t byteValue = buffer[j];
-    byteValue = byteValue & 0xff;
-    crc = (0xFFFF ^ byteValue) & 0xffff;
+    byteValue &= 0xff;
+    
+    crc = (crc ^ byteValue) & 0xffff;
 
-    uint8_t n = 0;
-    while (n <= 7) {
+    for (int i = 0; i < 8;i++) {
       if ((crc & 0x0001) != 0)
           crc = (crc >> 1) ^ 49061;
       else
-          crc = crc >> 1;
-      n++;
+          crc >>= 1;
     }
   }
   return crc;
