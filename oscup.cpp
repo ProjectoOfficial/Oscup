@@ -117,7 +117,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     int cont = 0;
     uint64_t start_time = get_timer();
 
-    while((_packet_rx.crc || cont == 0) != crc && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
+    while((_packet_rx.crc != crc || cont == 0) && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
@@ -259,13 +259,15 @@ void Oscup::unpack(uint16_t len) {
     *
     *  @param len it is the lenght of the received buffer
     */
+    if (len < 5)
+        return;
 
     _packet_rx.id = _RXBuffer[0];
     _packet_rx.command = _RXBuffer[1];
     _packet_rx.length = _RXBuffer[2];
     for (int i = 3; i < len - 3; i++)
         _packet_rx.payload[i - 3] = _RXBuffer[i];
-    _packet_rx.crc = (_RXBuffer[len - 2] << 8) | _RXBuffer[len - 1];
+    _packet_rx.crc = (_RXBuffer[len - 1] << 8) | _RXBuffer[len - 2];
 }
 
 

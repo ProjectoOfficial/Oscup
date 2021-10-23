@@ -52,7 +52,7 @@ def encodeInteger(value, length):
             return data
 
 
-def write(command: int, length: int, payload: str):
+def write(ser: serial, command: int, length: int, payload: str):
     deviceID = 0xC4 # class implementation will be different
 
     # ID COMMAND LENGTH PAYLOAD CRC
@@ -64,10 +64,10 @@ def write(command: int, length: int, payload: str):
         array[i] = payload[i - 3]
     crc = computeCRC(array)
     crcarray = encodeInteger(crc, 2)
-    combined =array + crcarray
+    combined = array + crcarray
     print("answer: " + "".join([str(hex(b)) + " " for b in combined]))
 
-    serial.write(array)
+    ser.write(array)
 
 
 ser = serial.Serial(port, baudrate, timeout=0.01)
@@ -101,7 +101,7 @@ while True:
                 if(crc == actualcrc):
                     print("they are equal, fine!")
                     dummybuff = bytearray([0,0,0,0,0]) 
-                    write(0xFE, 5, dummybuff)
+                    write(ser, 0xFE, 5, dummybuff)
                 
                 ''' hex just of the data we are converting'''
                 #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
@@ -109,6 +109,9 @@ while True:
 
                 ''' sleep is not mandatory '''
                 #sleep(0.5)
+
+                print("-----------------------------------------------")
             except:
+                print("error ...")
                 pass
             data = b''
