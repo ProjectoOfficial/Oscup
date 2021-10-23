@@ -52,7 +52,7 @@ def encodeInteger(value, length):
             return data
 
 
-def write(command: int, length: int, payload: str, ser: serial.Serial):
+def write(command: int, length: int, payload: str, ser: serial):
     deviceID = 0xC4 # class implementation will be different
 
     # ID COMMAND LENGTH PAYLOAD CRC
@@ -101,7 +101,7 @@ while True:
                 if(crc == actualcrc):
                     print("they are equal, fine!")
                     dummybuff = bytearray([0,0,0,0,0]) 
-                    write(0xFE, 5, dummybuff)
+                    write(0xFE, 5, dummybuff, ser)
                 
                 ''' hex just of the data we are converting'''
                 #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
@@ -109,6 +109,7 @@ while True:
 
                 ''' sleep is not mandatory '''
                 #sleep(0.5)
+                print("----------------------------------------------------")
             except:
                 pass
             data = b''
