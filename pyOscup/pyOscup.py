@@ -9,12 +9,14 @@ MAX_ACK_WAIT = 150
 RETRY_INTERVAL = 50
 MAX_ATTEMPTS = 10
 
-#definiamo le struct
+
+# definiamo le struct
 @dataclass
 class timer_info_t:
     alarm_value: int
     auto_reload: bool
-    #mancano due timer_group_t
+    # mancano due timer_group_t
+
 
 @dataclass
 class packet_t:
@@ -24,15 +26,18 @@ class packet_t:
     payload: bytearray
     crc: int
 
+
 @dataclass
 class RxCommands:
     ACK = 0xFE
     NACK = 0xFF
 
+
 @dataclass
 class TxCommands:
     SHARE = 0x01
     CONFIRM = 0x02
+
 
 @dataclass
 class ErrorCodes:
@@ -44,11 +49,11 @@ class ErrorCodes:
     NULLPOINTER: int
     ACK_TIMEOUT: int
 
+
 class Oscup:
     def __init__(self, id: int, baudrate: int):
         self.id = id
         self.baudrate = baudrate
-        #self.uart_port = uart_port_t::UART_NUM_0;
         self.intr_alloc_flags = 0
         self.packet_rx: packet_t
         self.packet_tx: packet_t
@@ -98,12 +103,12 @@ class Oscup:
     def pack(self, command: int, length: int, buffer: bytearray):
         self.packet_tx.command = command
         self.packet_tx.length = length
-        #memmove
+        # memmove
         self.packet_tx.payload = buffer
-        #bufferizziamo il pacchetto
+        # bufferizziamo il pacchetto
         self.bufferize(self.packet_tx)
 
-        #manca la parte di calcolo del CRC
+        # manca la parte di calcolo del CRC
         self.packet_tx.crc = self.computeCRC(self.TXBuffer)
         return ErrorCodes.OK
 
@@ -111,7 +116,7 @@ class Oscup:
         len: int
         withCRC: bool
         if packet is None:
-            return #errore da ritornare
+            return # errore da ritornare
         if packet.crc is None:
             len = 3 + packet.length
             withCRC = False
@@ -136,24 +141,23 @@ class Oscup:
             self.TXBuffer[len - 2] = packet.crc >> 8
             self.TXBuffer[len - 1] = packet.crc & 0xFF
             
-
     def get_timer(self,):
         return time.monotonic()
     
     def read(self, packet: packet_t):
         length: int
-        
+
         self.RXBuffer = self.serialWriter.read(MAX_PAYLOAD_LENGTH + 5)
         length = len(self.RXBuffer)
         self.unpack(length)
-        
+
         packet.id = self.packet_rx.id
         packet.command = self.packet_rx.command
         packet.length = length - 5
         packet.payload = self.packet_rx.payload
         packet.crc = self.packet_rx.crc
-        
-        #scrivo l'ack se il crc che calcolo io sul buffer è uguale a quello ricevuto nel buffer
+
+        # scrivo l'ack se il crc che calcolo io sul buffer è uguale a quello ricevuto nel buffer
         if self.computeCRC(self.RXBuffer, length - 2) == self.packet_rx.crc:
             self.write(RxCommands.ACK, 0, "")
         return ErrorCodes.OK
@@ -165,7 +169,6 @@ class Oscup:
         for i in range(3, len):
             self.packet_rx.payload[i - 3] = self.RXBuffer[i]
         self.packet_rx.crc = (self.RXBuffer[len - 2] << 8) | self.RXBuffer[len - 1]
-        
 
     def computeCRC(self, array: bytearray):
         '''funzione che calcola il CRC degli ultimi due byte'''
