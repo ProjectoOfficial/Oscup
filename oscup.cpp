@@ -117,18 +117,20 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     int cont = 0;
     uint64_t time_limit = MAX_ACK_WAIT;
     uint64_t start_time = get_timer();
+
     while(_packet_rx.crc != crc && (get_timer() - start_time) <= time_limit && cont <= MAX_ATTEMPTS) {
+        resetRX();
+
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
             uint16_t len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
             unpack(len);
             crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
-            if(_packet_rx.command == (uint8_t)RxCommands::NACK){
-                uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-                time_limit += RETRY_INTERVAL;
-                crc = 0; //resetting crc allows another while cycle
-            }
-            else if (_packet_rx.command == (uint8_t)RxCommands::ACK)
+            
+            if (_packet_rx.command == (uint8_t)RxCommands::ACK)
                 break;
+            
+            uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5); //if NACK or empty
+
             cont++;
         }
     } 
@@ -203,22 +205,37 @@ uint8_t Oscup::read(packet_t *packet) {
     *  @return it returns feedback on writing result
     */
 
+    uint8_t dummuBufferLen = 5;
+    char dummuBuffer[dummuBufferLen] = { 0,0,0,0,0 };
+
+    uint16_t len;
     uint16_t crc;
     int cont = 0;
     uint64_t time_limit = MAX_ACK_WAIT;
     uint64_t start_time = get_timer();
     while (_packet_rx.crc != crc && (get_timer() - start_time) <= time_limit && cont <= MAX_ATTEMPTS) {
+        resetRX(); 
+        resetTX();
+
         if ((get_timer() - start_time) >= RETRY_INTERVAL * cont) {
-            uint16_t len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
+            len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
             unpack(len);
             crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
 
             if (_packet_rx.crc != crc) {
-                write(RxCommands::NACK, 0, "");
+                uint8_t error = pack((uint8_t)RxCommands::NACK, dummuBufferLen, dummuBuffer);
+                if (error)
+                    continue;
+                bufferize(&_packet_tx);
+                uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
                 continue;
             }
             else {
-                write(RxCommands::ACK, 0, "");
+                uint8_t error = pack((uint8_t)RxCommands::ACK, dummuBufferLen, dummuBuffer);
+                if (error)
+                    continue;
+                bufferize(&_packet_tx);
+                uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
                 break;
             }
             cont++;
@@ -226,7 +243,7 @@ uint8_t Oscup::read(packet_t *packet) {
     }
 
     if (_packet_rx.crc != crc)
-        return ErrorCodes::CRC_ERROR;
+        return (uint8_t)ErrorCodes::CRC_ERROR;
 
     packet->id = _packet_rx.id;
     packet->command = _packet_rx.command;
@@ -250,6 +267,36 @@ void Oscup::unpack(uint16_t len) {
     for (int i = 3; i < len - 3; i++)
         _packet_rx.payload[i - 3] = _RXBuffer[i];
     _packet_rx.crc = (_RXBuffer[len - 2] << 8) | _RXBuffer[len - 1];
+}
+
+
+void Oscup::resetRX() {
+    /* @brief resets RXBuffer and _packet_rx
+    */
+    _packet_rx.id = 0;
+    _packet_rx.command = 0;
+    _packet_rx.length = 0;
+    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+        _packet_tx.payload[i] = 0;
+    _packet_rx.crc = 0;
+
+    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+        _RXBuffer[i] = 0;
+}
+
+
+void Oscup::resetTX() {
+    /* @brief resets TXBuffer and _packet_tx
+    */
+    _packet_tx.id = 0;
+    _packet_tx.command = 0;
+    _packet_tx.length = 0;
+    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+        _packet_tx.payload[i] = 0;
+    _packet_tx.crc = 0;
+
+    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+        _TXBuffer[i] = 0;
 }
 
 

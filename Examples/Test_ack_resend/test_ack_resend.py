@@ -1,7 +1,7 @@
 import serial
 import struct
 from time import sleep
-port = 'COM5' #change COM port
+port = 'COM4' #change COM port
 baudrate = 115200 #change baudrate
 
 ser = serial.Serial(port, baudrate, timeout=0.01)

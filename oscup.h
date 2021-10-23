@@ -124,10 +124,11 @@ class Oscup {
         timer_info_t _timer_info;
 
         void tim_init(int prescaler);  
-        static bool IRAM_ATTR timer_group_isr_callback(void *args);
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack(uint16_t len);
+        void resetRX();
+        void resetTX();
         uint16_t computeCRC(char* buff, uint16_t len);
 };
 
