@@ -49,6 +49,10 @@ class Oscup:
         self.id = id
         self.baudrate = baudrate
         #self.uart_port = uart_port_t::UART_NUM_0;
+        self.uart_rxd_pin = UART_RXD_PIN
+        self.uart_txd_pin = UART_TXD_PIN
+        self.uart_rts_pin = UART_RTS_PIN
+        self.uart_rts_pin = UART_CTS_PIN
         self.intr_alloc_flags = 0
         self.packet_rx: packet_t
         self.packet_tx: packet_t
@@ -64,7 +68,7 @@ class Oscup:
         self.TXBuffer = bytearray()
         self.RXBuffer = bytearray()
 
-    def write(self, command: int, length: int, payload: str):
+    def write(self,command: int, length: int, payload: str):
         if length > MAX_PAYLOAD_LENGTH:
             return ErrorCodes.LENGTH_ERROR
         if payload is None:
@@ -73,7 +77,7 @@ class Oscup:
         if error is not None:
             return error
         self.bufferize(self.packet_tx)
-        self.serialWriter.write(self.packet_tx)
+        #uart_write_bytes
 
         crc: int
         cont = 0
@@ -94,6 +98,8 @@ class Oscup:
         if self.packet_rx.crc != crc:
             return ErrorCodes.ACK_TIMEOUT
         return ErrorCodes.OK
+
+
 
     def pack(self, command: int, length: int, buffer: bytearray):
         self.packet_tx.command = command
@@ -142,20 +148,14 @@ class Oscup:
     
     def read(self, packet: packet_t):
         length: int
-        
-        self.RXBuffer = self.serialWriter.read(MAX_PAYLOAD_LENGTH + 5)
+        self.RXBuffer = self.serialWriter.read(MAX_PAYLOAD_LENGTH+5)
         length = len(self.RXBuffer)
         self.unpack(length)
-        
         packet.id = self.packet_rx.id
         packet.command = self.packet_rx.command
         packet.length = length - 5
         packet.payload = self.packet_rx.payload
         packet.crc = self.packet_rx.crc
-        
-        #scrivo l'ack se il crc che calcolo io sul buffer è uguale a quello ricevuto nel buffer
-        if self.computeCRC(self.RXBuffer, length - 2) == self.packet_rx.crc:
-            self.write(RxCommands.ACK, 0, "")
         return ErrorCodes.OK
 
     def unpack(self,len: int):
