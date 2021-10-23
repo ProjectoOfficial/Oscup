@@ -115,10 +115,9 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
 
     uint16_t crc;
     int cont = 0;
-    uint64_t time_limit = MAX_ACK_WAIT;
     uint64_t start_time = get_timer();
 
-    while(_packet_rx.crc != crc && (get_timer() - start_time) <= time_limit && cont <= MAX_ATTEMPTS) {
+    while((_packet_rx.crc || cont == 0) != crc && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
