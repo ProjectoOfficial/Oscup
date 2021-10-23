@@ -70,99 +70,41 @@ class Oscup:
         self.RXBuffer = bytearray()
 
     def write(self, command: int, length: int, payload: str):
-        if length > MAX_PAYLOAD_LENGTH:
-            return ErrorCodes.LENGTH_ERROR
-        if payload is None:
-            return ErrorCodes.NULLPOINTER
-        error = self.pack(command, length, payload)
-        if error is not None:
-            return error
-        self.bufferize(self.packet_tx)
-        self.serialWriter.write(self.packet_tx)
-
-        crc: int
-        cont = 0
-        time_limit = MAX_ACK_WAIT
-        start_time = self.get_timer()
-
-        while (self.packet_rx.crc != crc) and ((self.get_timer - start_time) < time_limit) and (cont < MAX_ATTEMPTS):
-            if(self.get_timer() - start_time) > RETRY_INTERVAL * cont:
-                len: int = self.serialWriter.read(MAX_PAYLOAD_LENGTH + 5)
-                self.unpack(len)
-                crc = self.computeCRC(self.RXBuffer)
-                if self.packet_rx.crc != crc:
-                    self.serialWriter.write(self.TXBuffer)
-                elif self.packet_rx.command == RxCommands.NACK:
-                    time_limit += RETRY_INTERVAL
-                    crc = 0
-                cont += 1
-        if self.packet_rx.crc != crc:
-            return ErrorCodes.ACK_TIMEOUT
-        return ErrorCodes.OK
-
-    def pack(self, command: int, length: int, buffer: bytearray):
-        self.packet_tx.command = command
-        self.packet_tx.length = length
-        # memmove
-        self.packet_tx.payload = buffer
-        # bufferizziamo il pacchetto
-        self.bufferize(self.packet_tx)
-
-        # manca la parte di calcolo del CRC
-        self.packet_tx.crc = self.computeCRC(self.TXBuffer)
-        return ErrorCodes.OK
-
-    def bufferize(self, packet: packet_t):
-        len: int
-        withCRC: bool
-        if packet is None:
-            return # errore da ritornare
-        if packet.crc is None:
-            len = 3 + packet.length
-            withCRC = False
-        else:
-            len = 5 + packet.length
-            withCRC = True
         """
-        In teoria la append dovrebbe funzionare anche con i bytearray
+        This functions uses the Serial object in its attrbibutes to write
+        data to the serial port
         """
-        self.TXBuffer.append(packet.id)
-        self.TXBuffer.append(packet.command)
-        self.TXBuffer.append(packet.length)
-        for i in range(3, 3 + packet.length):
-            self.TXBuffer[i] = packet.payload[i - 3]
-        
-        """
-        visto che il crc è composto da due elementi, l'ultimo elemento
-        di TXBuffer sarà anch'esso una lista, di questi due elementi
-        """
-        if withCRC:
-            crc = bytearray
-            self.TXBuffer[len - 2] = packet.crc >> 8
-            self.TXBuffer[len - 1] = packet.crc & 0xFF
+        totalLength = 5 + length
+        arr = bytearray(totalLength)
+        arr[0] = self.serialWriter[0]
+        arr[1] = command
+        arr[2] = length
+        for i in range(3, length):
+            arr[i] = payload[i-3]
+        crc = self.computeCRC(arr)
+        assert len(crc) == 2
+        arr[totalLength - 2] = crc[0]
+        arr[totalLength - 1] = crc[1]
+        self.serialWriter.write(arr)
+
+
             
     def get_timer(self,):
         return time.monotonic()
     
-    def read(self, packet: packet_t):
+    def read(self,):
         length: int
 
         self.RXBuffer = self.serialWriter.read(MAX_PAYLOAD_LENGTH + 5)
         length = len(self.RXBuffer)
         self.unpack(length)
 
-        packet.id = self.packet_rx.id
-        packet.command = self.packet_rx.command
-        packet.length = length - 5
-        packet.payload = self.packet_rx.payload
-        packet.crc = self.packet_rx.crc
-
         # scrivo l'ack se il crc che calcolo io sul buffer è uguale a quello ricevuto nel buffer
         if self.computeCRC(self.RXBuffer, length - 2) == self.packet_rx.crc:
             self.write(RxCommands.ACK, 0, "")
         return ErrorCodes.OK
 
-    def unpack(self,len: int):
+    def unpack(self, len: int):
         self.packet_rx.id = self.RXBuffer[0]
         self.packet_rx.command = self.RXBuffer[1]
         self.packet_rx.length = self.RXBuffer[2]
@@ -170,7 +112,7 @@ class Oscup:
             self.packet_rx.payload[i - 3] = self.RXBuffer[i]
         self.packet_rx.crc = (self.RXBuffer[len - 2] << 8) | self.RXBuffer[len - 1]
 
-    def computeCRC(self, array: bytearray):
+    def computeCRC(array: bytearray):
         '''funzione che calcola il CRC degli ultimi due byte'''
         crc = 0xFFFF
 
@@ -178,16 +120,15 @@ class Oscup:
             byteValue = array[j]
             byteValue &= 0xff
 
-            tmpCrc = (crc ^ byteValue) & 0xFFFF
+            crc = (crc ^ byteValue) & 0xFFFF
 
             for _ in range(8):
-                if (tmpCrc & 0x0001) != 0:
-                    tmpCrc >>= 1
-                    tmpCrc ^= 49061
+                if (crc & 0x0001) != 0:
+                    crc = (crc >> 1) ^ 49061
                 else:
-                    tmpCrc >>= 1
-            crc = tmpCrc
+                    crc >>= 1
 
+        print(crc, type(crc), len(crc))
         return crc
 
     

@@ -52,7 +52,7 @@ def encodeInteger(value, length):
             return data
 
 
-def write(command: int, length: int, payload: str):
+def write(command: int, length: int, payload: str, ser: serial.Serial):
     deviceID = 0xC4 # class implementation will be different
 
     # ID COMMAND LENGTH PAYLOAD CRC
@@ -67,7 +67,7 @@ def write(command: int, length: int, payload: str):
     combined =array + crcarray
     print("answer: " + "".join([str(hex(b)) + " " for b in combined]))
 
-    serial.write(array)
+    ser.write(array)
 
 
 ser = serial.Serial(port, baudrate, timeout=0.01)
