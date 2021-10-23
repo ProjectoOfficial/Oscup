@@ -190,8 +190,8 @@ void Oscup::bufferize(packet_t *packet) {
         _TXBuffer[i] = packet->payload[i - 3];
 
     if (packet->crc) {
-        _TXBuffer[len - 2] = packet->crc >> 8;
-        _TXBuffer[len - 1] = packet->crc & 0xFF;
+        _TXBuffer[len - 1] = packet->crc >> 8;
+        _TXBuffer[len - 2] = packet->crc & 0xFF;
     }
 }
 
@@ -287,7 +287,6 @@ void Oscup::resetRX() {
 void Oscup::resetTX() {
     /* @brief resets TXBuffer and _packet_tx
     */
-    _packet_tx.id = 0;
     _packet_tx.command = 0;
     _packet_tx.length = 0;
     for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)

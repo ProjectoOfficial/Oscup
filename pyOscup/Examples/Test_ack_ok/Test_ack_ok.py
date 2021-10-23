@@ -14,15 +14,13 @@ def computeCRC(array: bytearray):
             byteValue = array[j]
             byteValue &= 0xff
 
-            tmpCrc = (crc ^ byteValue) & 0xFFFF
+            crc = (crc ^ byteValue) & 0xFFFF
 
             for _ in range(8):
-                if (tmpCrc & 0x0001) != 0:
-                    tmpCrc >>= 1
-                    tmpCrc ^= 49061
+                if (crc & 0x0001) != 0:
+                    crc = (crc >> 1) ^ 49061
                 else:
-                    tmpCrc >>= 1
-            crc = tmpCrc
+                    crc >>= 1
 
         return crc
 
@@ -32,27 +30,44 @@ def encodeInteger(value, length):
         data = bytearray(length)
 
         if (length == 1):
-            data[0] = (value >> 0) & 0xFF
+            data[0] = value & 0xFF
             return data
 
         if (length == 2):
-            data[0] = (value >> 0) & 0xFF
+            data[0] = value & 0xFF
             data[1] = (value >> 8) & 0xFF
             return data
 
         if (length == 3):
-            data[0] = (value >> 0) & 0xFF
+            data[0] = value & 0xFF
             data[1] = (value >> 8) & 0xFF
             data[2] = (value >> 16) & 0xFF
             return data
 
         if (length == 4):
-            data[0] = (value >> 0) & 0xFF
+            data[0] = value & 0xFF
             data[1] = (value >> 8) & 0xFF
             data[2] = (value >> 16) & 0xFF
             data[3] = (value >> 24) & 0xFF
             return data
 
+
+def write(command: int, length: int, payload: str):
+    deviceID = 0xC4 # class implementation will be different
+
+    # ID COMMAND LENGTH PAYLOAD CRC
+    array = bytearray(3 + length)
+    array[0] = deviceID
+    array[1] = command
+    array[2] = length
+    for i in range(3, length):
+        array[i] = payload[i - 3]
+    crc = computeCRC(array)
+    crcarray = encodeInteger(crc, 2)
+    combined =array + crcarray
+    print("answer: " + "".join([str(hex(b)) + " " for b in combined]))
+
+    serial.write(array)
 
 
 ser = serial.Serial(port, baudrate, timeout=0.01)
@@ -83,6 +98,11 @@ while True:
                 print("crc: " + "".join([str(hex(b)) + " " for b in crc]))
                 print("computed CRC:{}; actual CRC: {}".format(crc, actualcrc))
 
+                if(crc == actualcrc):
+                    print("they are equal, fine!")
+                    dummybuff = bytearray([0,0,0,0,0]) 
+                    write(0xFE, 5, dummybuff)
+                
                 ''' hex just of the data we are converting'''
                 #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
 
