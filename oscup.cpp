@@ -117,17 +117,18 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     int cont = 0;
     uint64_t time_limit = MAX_ACK_WAIT;
     uint64_t start_time = get_timer();
-    while(_packet_rx.crc != crc && (get_timer() - start_time) < time_limit && cont < MAX_ATTEMPTS) {
-        if((get_timer() - start_time) > RETRY_INTERVAL * cont){
+    while(_packet_rx.crc != crc && (get_timer() - start_time) <= time_limit && cont <= MAX_ATTEMPTS) {
+        if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
             uint16_t len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
             unpack(len);
             crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
-            if(_packet_rx.crc != crc)
+            if(_packet_rx.command == (uint8_t)RxCommands::NACK){
                 uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-            else if(_packet_rx.command == (uint8_t)RxCommands::NACK){
                 time_limit += RETRY_INTERVAL;
                 crc = 0; //resetting crc allows another while cycle
             }
+            else if (_packet_rx.command == (uint8_t)RxCommands::ACK)
+                break;
             cont++;
         }
     } 
@@ -202,15 +203,37 @@ uint8_t Oscup::read(packet_t *packet) {
     *  @return it returns feedback on writing result
     */
 
-    uint16_t len;
-    len = uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
-    unpack(len);
+    uint16_t crc;
+    int cont = 0;
+    uint64_t time_limit = MAX_ACK_WAIT;
+    uint64_t start_time = get_timer();
+    while (_packet_rx.crc != crc && (get_timer() - start_time) <= time_limit && cont <= MAX_ATTEMPTS) {
+        if ((get_timer() - start_time) >= RETRY_INTERVAL * cont) {
+            uint16_t len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
+            unpack(len);
+            crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
+
+            if (_packet_rx.crc != crc) {
+                write(RxCommands::NACK, 0, "");
+                continue;
+            }
+            else {
+                write(RxCommands::ACK, 0, "");
+                break;
+            }
+            cont++;
+        }
+    }
+
+    if (_packet_rx.crc != crc)
+        return ErrorCodes::CRC_ERROR;
 
     packet->id = _packet_rx.id;
     packet->command = _packet_rx.command;
     packet->length = len - 5;
     memmove(packet->payload, &_packet_rx.payload, packet->length);
     packet->crc = _packet_rx.crc;
+
     return (uint8_t)ErrorCodes::OK;
 }
 

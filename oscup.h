@@ -37,6 +37,7 @@ extern "C" {
 #define MAX_ACK_WAIT 150 //15ms
 #define RETRY_INTERVAL 50 //5ms
 #define MAX_ATTEMPTS 10
+
 typedef struct {
     timer_group_t group;
     timer_idx_t index;
@@ -58,8 +59,8 @@ typedef struct {
 /******************* COMMANDS ***********************/
 enum class RxCommands : uint8_t
 {
-  ACK = 0xFE,
-  NACK = 0xFF,
+    ACK = 0xFE,
+    NACK = 0xFF,
 };
 
 enum class TxCommands : uint8_t
@@ -81,7 +82,8 @@ enum class ErrorCodes : uint8_t
     PACKMEMMOVE_ERROR,
     WRITE_ERROR,
     NULLPOINTER,
-    ACK_TIMEOUT
+    ACK_TIMEOUT,
+    CRC_ERROR,
 };
 
 
