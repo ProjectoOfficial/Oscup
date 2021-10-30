@@ -34,7 +34,7 @@ extern "C" {
 #define TIMER_PRESCALER_80MHZ   7999
 #define TIMER_PRESCALER_40MHZ   3999
 
-#define MAX_ACK_WAIT 150 //15ms
+#define MAX_ACK_WAIT 220 //22ms
 #define RETRY_INTERVAL 50 //5ms
 #define MAX_ATTEMPTS 10
 
@@ -76,14 +76,13 @@ enum class TxCommands : uint8_t
 /******************* ERROR CODES ********************/
 enum class ErrorCodes : uint8_t
 {
-    UARTREAD_ERROR,
     OK = 0,
-    LENGTH_ERROR,
-    PACKMEMMOVE_ERROR,
-    WRITE_ERROR,
-    NULLPOINTER,
-    ACK_TIMEOUT,
-    CRC_ERROR,
+    LENGTH_ERROR = 0x01,
+    PACKMEMMOVE_ERROR = 0x02,
+    WRITE_ERROR = 0x03,
+    NULLPOINTER = 0x04,
+    ACK_TIMEOUT = 0x05,
+    CRC_ERROR = 0x06,
 };
 
 
@@ -126,9 +125,10 @@ class Oscup {
         void tim_init(int prescaler);  
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
-        void unpack(uint16_t len);
+        void unpack();
         void resetRX();
         void resetTX();
+        void sleep(uint64_t ms);
         uint16_t computeCRC(char* buff, uint16_t len);
 };
 
