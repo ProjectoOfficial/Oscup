@@ -36,6 +36,8 @@ extern "C" {
 
 #define MAX_ACK_WAIT 220 //22ms
 #define RETRY_INTERVAL 50 //5ms
+#define READ_MAX_ACK_WAIT 350 //35ms
+#define READ_RETRY_INTERVAL 10 //1ms
 #define MAX_ATTEMPTS 10
 
 typedef struct {
@@ -83,6 +85,8 @@ enum class ErrorCodes : uint8_t
     NULLPOINTER = 0x04,
     ACK_TIMEOUT = 0x05,
     CRC_ERROR = 0x06,
+    NACK = 0x07,
+    PACK_ERROR = 0x08,
 };
 
 

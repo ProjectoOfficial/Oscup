@@ -1,19 +1,20 @@
 import struct
-from time import sleep, time
+from time import sleep, time as t
+import time
 from random import random
 import serial
 
 port = 'COM4' #change COM port
 baudrate = 115200 #change baudrate
 
-MAX_ACK_WAIT 22
-RETRY_INTERVAL 5
-MAX_ATTEMPTS 10
+MAX_ACK_WAIT = 300
+RETRY_INTERVAL = 1
+MAX_ATTEMPTS = 100
 deviceID = 0xC4 # class implementation will be different
 
 class packet_t:
 
-    def __init__(self, id=None: int):
+    def __init__(self, id=None):
         self.id = id
         self.command = None
         self.length = None
@@ -35,22 +36,24 @@ class packet_t:
         self.command = command
         self.length = length
         self.payload = payload
-        __updateBuff()
-        self.crc = computeCRC(self.buff)
+        self.__updateBuff()
+        if self.buff != None:
+            self.crc = self.computeCRC(self.buff)
+            self.buff.extend(self.encodeInteger(self.crc, 2))
 
-    def __updateBuff():
-        buff = bytearray([self.id])
-        buff.extend(bytearray([self.command]))
-        buff.extend(bytearray([self.length]))
-        buff.extend(self.payload)
+    def __updateBuff(self):
+        self.buff = bytearray([self.id])
+        self.buff.extend(bytearray([self.command]))
+        self.buff.extend(bytearray([self.length]))
+        self.buff.extend(self.payload)
         if self.crc != None:
-            buff.extend(encodeInteger(crc, 2))
+            self.buff.extend(self.encodeInteger(self.crc, 2))
 
-    def getcrc():
+    def getcrc(self):
         return self.crc
 
     def getBuff(self):
-        __updateBuff()
+        self.__updateBuff()
         return self.buff
 
     def getParams(self):
@@ -59,6 +62,7 @@ class packet_t:
     @staticmethod
     def computeCRC(array: bytearray):
         '''funzione che calcola il CRC degli ultimi due byte'''
+        assert array != None
         crc = 0xFFFF
 
         for j in range(len(array)):
@@ -103,31 +107,39 @@ class packet_t:
             return data
 
 def getTime():
-    return time.time_ns() // 1_000_000 
+    return time.time_ns() // 1_000_000
 
 def write(command: int, length: int, payload: bytearray, ser: serial):
 
     # ID COMMAND LENGTH PAYLOAD CRC
     TX = packet_t(deviceID)
     TX.update(command, length, payload)
-    ser.write(TX.getBuff())
+    if TX.getBuff() != None:
+        print("WRITING " + "".join([str(hex(b)) + "     " for b in TX.getBuff()]))
+        ser.write(TX.getBuff())
 
     RX = packet_t()
 
     cont = 0
     start_time = getTime()
     crc = random()
+
+    data = b''
     while (crc != RX.getcrc() or cont == 0) and (getTime() - start_time <= MAX_ACK_WAIT) and (cont <= MAX_ATTEMPTS):
         RX.reset()
 
-        if getTime() - start_time >= RETRY_INTERVAL * cont:
-            data = b''
-            while True:
-                 x = ser.read()
-                if x != b'':
-                    data+= x[0:1]
-                else:
-                    break
+        while True:
+            x = ser.read()
+            if x != b'':
+                data+= x[0:1]
+            else:
+                if data != b'':
+                    print("data: " + "".join([str(hex(b)) + "     " for b in data]))
+                cont += 1
+                data = b''
+                break
+            
+'''  
 def read(ser):
     data = b''
     cont = 0
@@ -161,12 +173,12 @@ def read(ser):
                     data = b''
                 
                 cont+=1
+'''
 
-
-ser = serial.Serial(port, baudrate, timeout=0.01)
+ser = serial.Serial(port, baudrate,timeout=0,write_timeout=0)
 cont = 0
-while cont < 50:
+while True:
     dummybuff = bytearray([1,2,3,4,5]) 
     write(0x01, 5, dummybuff, ser)
-    read(ser)
-    cont +=1
+    sleep(1)
+    #read(ser)
