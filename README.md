@@ -35,7 +35,7 @@ Obviously, you can configure the action you prefer to undertake each command. We
   - `begin`: initializes the UART parameters and forwards it to the control hardware. It is mandatory to call it inside void setup().
   - `testWrite`: executes a write test on uart using a fixed string as payload.
   - `write`: the write function takes a command "user-defined", the length of the payload and the effective payload, which has a fixed length of 255 bytes. This function writes this data on UART and returns an error code.
-  - `read`: !!still not tested!! It reads the data incoming and insert them in a packet_t struct, defined in .h file. It returs the lenght of the readed buffer if everything works fine, otherwise a negative error.
+  - `read`: It reads the data incoming and insert them in a packet_t struct, defined in .h file. It returs the lenght of the readed buffer if everything works fine, otherwise a negative error.
   - `get_timer`: returns the timer's counter
   - `get_APB_clk`: return the frequency of APB. Usually APB is used to set periphericals frequency on embedded processors.
   
