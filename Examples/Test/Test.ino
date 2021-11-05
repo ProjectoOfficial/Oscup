@@ -1,11 +1,13 @@
 /* This is a demo of OSCUP protocol, in this example you have to flash this
- *  firmware on the ESP32 and then run the python code.
- *  
- *  This software is provided AS IS, no Warranties!
- *  
- *  Copyright © 2021 Projecto - Dott. Daniel Rossi, Dott. Riccardo Salami
- *  License GPL-V3
- */
+    firmware on the ESP32 and then run the python code.
+
+    This software is provided AS IS, no Warranties!
+
+    Copyright © 2021 Projecto - Dott. Daniel Rossi, Dott. Riccardo Salami
+    License GPL-V3
+
+    Version: 1.1.0
+*/
 
 #include <stdlib.h>
 #include "oscup.h"

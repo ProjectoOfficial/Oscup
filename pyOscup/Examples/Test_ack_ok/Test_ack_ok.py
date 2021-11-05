@@ -1,5 +1,10 @@
-import struct
-from time import sleep
+'''
+Oscup: Open Source Custom Uart Protocol
+This Software was release under: GPL-3.0 License
+Copyright � 2021 Daniel Rossi & Riccardo Salami
+Version: ALPHA 1.1.0
+'''
+
 import serial
 
 port = 'COM4' #change COM port

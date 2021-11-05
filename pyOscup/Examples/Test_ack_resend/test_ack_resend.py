@@ -1,6 +1,12 @@
+'''
+Oscup: Open Source Custom Uart Protocol
+This Software was release under: GPL-3.0 License
+Copyright � 2021 Daniel Rossi & Riccardo Salami
+Version: ALPHA 1.1.0
+'''
+
 import serial
 import struct
-from time import sleep
 port = 'COM4' #change COM port
 baudrate = 115200 #change baudrate
 

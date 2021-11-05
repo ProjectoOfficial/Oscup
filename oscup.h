@@ -2,7 +2,7 @@
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
 * Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 1.0.0
+* Version: ALPHA 1.1.0
 */
 #ifndef OSCUP_H_
 #define OSCUP_H_
@@ -87,6 +87,7 @@ enum class ErrorCodes : uint8_t
     CRC_ERROR = 0x06,
     NACK = 0x07,
     PACK_ERROR = 0x08,
+    NO_DATA = 0x09,
 };
 
 

@@ -2,7 +2,7 @@
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
 * Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 0.1.1
+* Version: ALPHA 1.1.0
 */
 
 #include "oscup.h"
@@ -136,7 +136,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     } 
 
     if(_packet_rx.crc != crc)
-        return (uint8_t)ErrorCodes::ACK_TIMEOUT;
+        return (uint8_t)ErrorCodes::CRC_ERROR;
 
     return (uint8_t)ErrorCodes::OK;
 }
@@ -145,7 +145,6 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
 uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
     /* @brief prepares data to be sent and obtains the crc
     * 
-    *  @param id id of the device which has to receive the packet
     *  @param command command to execute on the receiver
     *  @param length length of the payload
     *  @param buffer payload containing data 
@@ -202,7 +201,7 @@ uint8_t Oscup::read(packet_t *packet) {
     * 
     *  @param *packet packet struct where will be available the readed data
     * 
-    *  @return it returns feedback on writing result
+    *  @return it returns feedback on reading result
     */
 
     uint8_t dummyBufferLen = 5;
@@ -225,7 +224,7 @@ uint8_t Oscup::read(packet_t *packet) {
             return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
         uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-        return (uint8_t)ErrorCodes::NACK;
+        return (uint8_t)ErrorCodes::NO_DATA;
     }
 
     unpack();
@@ -241,7 +240,7 @@ uint8_t Oscup::read(packet_t *packet) {
             return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
         uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-        return (uint8_t)ErrorCodes::NACK;
+        return (uint8_t)ErrorCodes::CRC_ERROR;
     }
     else {
         uint8_t error = pack((uint8_t)RxCommands::ACK, dummyBufferLen, dummyBuffer);
@@ -249,12 +248,8 @@ uint8_t Oscup::read(packet_t *packet) {
             return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
         uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
-        return(uint8_t)ErrorCodes::NACK;
-            
+ 
     }
-
-    if (_packet_rx.crc != crc)
-        return (uint8_t)ErrorCodes::CRC_ERROR;
 
     packet->id = _packet_rx.id;
     packet->command = _packet_rx.command;

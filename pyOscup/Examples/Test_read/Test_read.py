@@ -1,4 +1,10 @@
-import struct
+'''
+Oscup: Open Source Custom Uart Protocol
+This Software was release under: GPL-3.0 License
+Copyright � 2021 Daniel Rossi & Riccardo Salami
+Version: ALPHA 1.1.0
+'''
+
 from time import sleep, time as t
 import time
 from random import random
@@ -133,47 +139,13 @@ def write(command: int, length: int, payload: bytearray, ser: serial):
             if x != b'':
                 data+= x[0:1]
             else:
-                if data != b'':
+                if data != b'' and len(data) > 5:
                     print("data: " + "".join([str(hex(b)) + "     " for b in data]))
                 cont += 1
+                if data[2] == 0xFF:
+                    ser.write(TX.getBuff())
                 data = b''
                 break
-            
-'''  
-def read(ser):
-    data = b''
-    cont = 0
-
-    CYCLES = 5
-    while cont < CYCLES:
-        x = ser.read()
-        if x != b'':
-            data+= x[0:1]
-        else:
-            if data != b'':
-                try:
-                    print("data: " + "".join([str(hex(b)) + " " for b in data]))
-                    newdata = data[:len(data) - 2]
-                    actualcrc = data[len(data)-2:]
-                    crc = encodeInteger(computeCRC(newdata), 2) 
-
-                    if(crc == actualcrc):
-                        if(data[1:2] == encodeInteger(0xFE, 1)):
-                            print("ACK " + "".join([str(hex(b)) + " " for b in data]))
-                            return
-                        elif (data[1:2] == encodeInteger(0xFF, 1)):
-                            dummybuff = bytearray([1,2,3,4,5]) 
-                            write(0x01, 5, dummybuff, ser)
-                        #else:
-                         #   print("DATA {}".format(data[3:4]))
-                except:
-                    pass
-                
-                if cont < CYCLES-1:
-                    data = b''
-                
-                cont+=1
-'''
 
 ser = serial.Serial(port, baudrate,timeout=0,write_timeout=0)
 cont = 0

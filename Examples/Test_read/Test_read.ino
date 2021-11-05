@@ -5,6 +5,8 @@
 
     Copyright © 2021 Projecto - Dott. Daniel Rossi, Dott. Riccardo Salami
     License GPL-V3
+
+    Version: 1.1.0
 */
 
 #include <stdlib.h>
