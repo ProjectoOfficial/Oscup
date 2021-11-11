@@ -2,7 +2,7 @@
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
 * Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 1.1.0
+* Version: ALPHA 1.2.0
 */
 
 #include "oscup.h"
@@ -47,7 +47,7 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
 }
 
 void Oscup::begin(){
-    uart_driver_install(uart_port, MAX_PAYLOAD_LENGTH + 1, MAX_PAYLOAD_LENGTH + 1, 0, NULL, intr_alloc_flags);
+    uart_driver_install(uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags);
     uart_param_config(uart_port, &_uart_config);
     uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
 }
@@ -76,17 +76,6 @@ void Oscup::tim_init(int prescaler){
 }
 
 
-uint8_t Oscup::testWrite() {
-    /*  @brief test write function which is usefull to see if dependencies are working
-    *
-    *   @return it returns an error code about write
-    */
-
-    uart_write_bytes(uart_port, (const char*)"prova\r\n", 8);
-    return (uint8_t)ErrorCodes::OK;
-}
-
-
 uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     /* @brief Writes data on Uart. 
     *         If ACK does not arrive, it will retry to send data again
@@ -111,30 +100,31 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         return error;
 
     bufferize(&_packet_tx);
-    uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+    uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
 
     uint16_t crc;
     int cont = 0;
     uint64_t start_time = get_timer();
-
+    return (uint8_t)ErrorCodes::OK;
     while((_packet_rx.crc != crc || cont == 0) && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
-            uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 20);
-            sleep(1);
+            uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, FIX_PACKET_LENGTH, 10);
             unpack();
-            crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
+            crc = computeCRC(_RXBuffer, FIX_PACKET_LENGTH - 2);
             
             if (_packet_rx.command == (uint8_t)RxCommands::ACK)
                 break;
-            
-            uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5); //if NACK or empty
+            sleep(10);
+            uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH); //if NACK or empty
 
             cont++;
         }
     } 
 
+    resetTX();
+    resetRX();
     if(_packet_rx.crc != crc)
         return (uint8_t)ErrorCodes::CRC_ERROR;
 
@@ -160,7 +150,7 @@ uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
     bufferize(&_packet_tx);
-    _packet_tx.crc = computeCRC(_TXBuffer, length + 3);
+    _packet_tx.crc = computeCRC(_TXBuffer, FIX_PACKET_LENGTH - 2);
 
     return (uint8_t)ErrorCodes::OK;
 }
@@ -173,15 +163,8 @@ void Oscup::bufferize(packet_t *packet) {
      * @param packet a not empty packet
     */
 
-   int len;
-
    if(packet == NULL)
        return;
-
-    if (packet->crc)
-        len = 5 + packet->length; // with crc
-    else
-        len = 3 + packet->length; // without crc
 
     _TXBuffer[0] = packet->id = _id;
     _TXBuffer[1] = packet->command;
@@ -190,8 +173,8 @@ void Oscup::bufferize(packet_t *packet) {
         _TXBuffer[i] = packet->payload[i - 3];
 
     if (packet->crc) {
-        _TXBuffer[len - 1] = packet->crc >> 8;
-        _TXBuffer[len - 2] = packet->crc & 0xFF;
+        _TXBuffer[FIX_PACKET_LENGTH - 1] = packet->crc >> 8;
+        _TXBuffer[FIX_PACKET_LENGTH - 2] = packet->crc & 0xFF;
     }
 }
 
@@ -204,50 +187,31 @@ uint8_t Oscup::read(packet_t *packet) {
     *  @return it returns feedback on reading result
     */
 
-    uint8_t dummyBufferLen = 5;
-    char dummyBuffer[dummyBufferLen] = { 0,0,0,0,0 };
-
     uint16_t crc;
     int cont = 0;
     uint64_t start_time = get_timer();
     resetRX(); 
     resetTX();
 
-    uint16_t len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, MAX_PAYLOAD_LENGTH + 5, 1); 
-    for (int i = 0; i < dummyBufferLen; i++)dummyBuffer[i] = 0;
+    uint16_t len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, FIX_PACKET_LENGTH, 1); 
 
     if (len == 0) {
-        for (int i = 0; i < dummyBufferLen; i++)
-            dummyBuffer[i] = 255;
-        uint8_t error = pack((uint8_t)RxCommands::NACK, dummyBufferLen, dummyBuffer);
-        if (error)
-            return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::NO_DATA;
     }
 
     unpack();
-    crc = computeCRC(_RXBuffer, _packet_rx.length + 3);
+    crc = computeCRC(_RXBuffer, FIX_PACKET_LENGTH - 2);
 
     if (_packet_rx.crc != crc) {
-        dummyBuffer[0] = crc >> 8;
-        dummyBuffer[1] = crc & 0xFF;
-        dummyBuffer[2] = _packet_rx.crc >> 8;
-        dummyBuffer[3] = _packet_rx.crc & 0xFF;
-        uint8_t error = pack((uint8_t)RxCommands::NACK, dummyBufferLen, dummyBuffer);
-        if (error)
-            return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::CRC_ERROR;
     }
     else {
-        uint8_t error = pack((uint8_t)RxCommands::ACK, dummyBufferLen, dummyBuffer);
-        if (error)
-            return (uint8_t)ErrorCodes::PACK_ERROR;
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, _packet_tx.length + 5);
+        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
  
     }
 
@@ -266,6 +230,9 @@ void Oscup::unpack() {
     *
     *  @param len it is the lenght of the received buffer
     */
+    if (_RXBuffer[0] == 0)
+        return;
+
     if (_RXBuffer[2] < 5)
         return;
 
@@ -274,7 +241,7 @@ void Oscup::unpack() {
     _packet_rx.length = _RXBuffer[2];
     for (int i = 0; i < _packet_rx.length; i++)
         _packet_rx.payload[i] = _RXBuffer[i + 3];
-    _packet_rx.crc = (_RXBuffer[_packet_rx.length + 4] << 8) | _RXBuffer[_packet_rx.length + 3];
+    _packet_rx.crc = (_RXBuffer[FIX_PACKET_LENGTH - 1] << 8) | _RXBuffer[FIX_PACKET_LENGTH - 2];
 }
 
 
@@ -288,7 +255,7 @@ void Oscup::resetRX() {
         _packet_tx.payload[i] = 0;
     _packet_rx.crc = 0;
 
-    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+    for (int i = 0; i < FIX_PACKET_LENGTH; i++)
         _RXBuffer[i] = 0;
 }
 
@@ -302,7 +269,7 @@ void Oscup::resetTX() {
         _packet_tx.payload[i] = 0;
     _packet_tx.crc = 0;
 
-    for (int i = 0; i < MAX_PAYLOAD_LENGTH + 5; i++)
+    for (int i = 0; i < FIX_PACKET_LENGTH; i++)
         _TXBuffer[i] = 0;
 }
 
@@ -341,7 +308,7 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
 
 void Oscup::sleep(uint64_t ms) {
     uint64_t start_time = get_timer();
-    while (get_timer() - start_time < ms);
+    while (get_timer() - start_time < ms * 10);
 }
 
 uint64_t Oscup::get_timer(){

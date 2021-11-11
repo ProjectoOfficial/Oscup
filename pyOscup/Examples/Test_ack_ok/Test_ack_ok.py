@@ -2,14 +2,15 @@
 Oscup: Open Source Custom Uart Protocol
 This Software was release under: GPL-3.0 License
 Copyright � 2021 Daniel Rossi & Riccardo Salami
-Version: ALPHA 1.1.0
+Version: ALPHA 1.2.0
 '''
 
 import serial
 
-port = 'COM4' #change COM port
+port = 'COM3' #change COM port
 baudrate = 115200 #change baudrate
 
+LENNN = 45
 
 def computeCRC(array: bytearray):
         '''funzione che calcola il CRC degli ultimi due byte'''
@@ -61,7 +62,7 @@ def write(command: int, length: int, payload: str, ser: serial):
     deviceID = 0xC4 # class implementation will be different
 
     # ID COMMAND LENGTH PAYLOAD CRC
-    array = bytearray(3 + length)
+    array = bytearray(LENNN - 2)
     array[0] = deviceID
     array[1] = command
     array[2] = length
@@ -78,43 +79,41 @@ def write(command: int, length: int, payload: str, ser: serial):
 ser = serial.Serial(port, baudrate, timeout=0.01)
 data = b''
 while True:
-    x = ser.read()
-    if x != b'':
-        data+= x[0:1]
-    else:
-        if data != b'':
-            try:
-                ''' extracts uint64_t from payload '''
-                #value = struct.unpack('Q', data[3:len(data)-2])
-                #print("value received: {}\n".format(value))
-                
-                ''' hex format '''
-                print()
-                print("raw data: {}".format(data))
-                print("cleaned data: " + "".join([str(hex(b)) + " " for b in data]))
-                print()
-                
-                print("data length:{}; last byte:{}".format(len(data), data[len(data )-2:]))
-                actualcrc = data[len(data)-2:]
+    data = ser.read(LENNN)
+    if data != b'':
+        try:
+            ''' extracts uint64_t from payload '''
+            #value = struct.unpack('Q', data[3:len(data)-2])
+            #print("value received: {}\n".format(value))
+            
+            ''' hex format '''
+            #print()
+            #print("raw data: {}".format(data))
+            print("cleaned data: " + "".join([str(hex(b)) + " " for b in data]))
+            #print()
+            
+            #print("data length:{}; last byte:{}".format(len(data), data[len(data )-2:]))
+            actualcrc = data[LENNN-2:]
 
-                newdata = data[:len(data) - 2]
-                print("new data: " + "".join([str(hex(b)) + " " for b in newdata]))
-                crc = encodeInteger(computeCRC(newdata), 2) 
-                print("crc: " + "".join([str(hex(b)) + " " for b in crc]))
-                print("computed CRC:{}; actual CRC: {}".format(crc, actualcrc))
-
-                if(crc == actualcrc):
-                    print("they are equal, fine!")
-                    dummybuff = bytearray([0,0,0,0,0]) 
-                    write(0xFE, 5, dummybuff, ser)
-                
-                ''' hex just of the data we are converting'''
-                #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
-
-
-                ''' sleep is not mandatory '''
-                #sleep(0.5)
+            newdata = data[:LENNN - 2]
+            #print("new data: " + "".join([str(hex(b)) + " " for b in newdata]))
+            crc = encodeInteger(computeCRC(newdata), 2) 
+            #print("crc: " + "".join([str(hex(b)) + " " for b in crc]))
+            #print("computed CRC:{}; actual CRC: {}".format(crc, actualcrc))
+            print("\n")
+            if(crc == actualcrc):
+                print("they are equal, fine!")
+                dummybuff = bytearray([0,0,0,0,0]) 
+                write(0xFE, 5, dummybuff, ser)
                 print("----------------------------------------------------")
-            except:
-                pass
-            data = b''
+            
+            ''' hex just of the data we are converting'''
+            #print("".join([str(hex(data[i])) + " " for i in range(3,len(data)-2)]))
+
+
+            ''' sleep is not mandatory '''
+            #sleep(0.5)
+            
+        except:
+            pass
+        data = b''

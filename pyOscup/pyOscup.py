@@ -2,7 +2,7 @@
 Oscup: Open Source Custom Uart Protocol
 This Software was release under: GPL-3.0 License
 Copyright � 2021 Daniel Rossi & Riccardo Salami
-Version: ALPHA 1.1.0
+Version: ALPHA 1.2.0
 '''
 
 from dataclasses import dataclass
@@ -10,7 +10,8 @@ import time
 import serial
 from random import random
 
-MAX_PAYLOAD_LENGTH = 255
+FIX_PACKET_LENGTH = 45
+MAX_PAYLOAD_LENGTH = FIX_PACKET_LENGTH - 5
 
 MAX_ACK_WAIT = 15
 RETRY_INTERVAL = 5
@@ -47,7 +48,7 @@ class ErrorCodes:
 class packet_t:
     '''this class defines the Oscup's packet and method for managing it'''
 
-    def __init__(self, id=None):
+    def __init__(self, id=0):
         '''
         @brief initializes the packet_t class
         
@@ -55,13 +56,12 @@ class packet_t:
         '''
 
         self.id = id
-        self.command = None
-        self.length = None
-        self.payload = None
-        self.crc = None
+        self.command = 0
+        self.length = 0
+        self.payload = bytearray(MAX_PAYLOAD_LENGTH)
+        self.crc = 0
 
-        self.buff_TX = None
-        self.buff_RX = None
+        self.buff = bytearray(FIX_PACKET_LENGTH)
 
 
     def reset(self):
@@ -69,14 +69,13 @@ class packet_t:
         @brief resets all the class attributes
         '''
 
-        self.id = None
-        self.command = None
-        self.length = None
-        self.payload = None
-        self.crc = None
+        self.id = 0
+        self.command = 0
+        self.length = 0
+        self.payload = bytearray(MAX_PAYLOAD_LENGTH)
+        self.crc = 0
 
-        self.buff_TX = None
-        self.buff_RX = None
+        self.buff = bytearray(FIX_PACKET_LENGTH)
 
 
     def pack(self, command: int, length: int, payload: bytearray):
@@ -93,46 +92,36 @@ class packet_t:
         self.length = length
         self.payload = payload
         self.__updateBuff()
-        if self.buff_TX != None:
-            self.crc = self.computeCRC(self.buff_TX)
-            self.buff_TX.extend(self.encodeInteger(self.crc, 2))
+        if self.buff != None:
+            self.crc = self.computeCRC(self.buff)
+            self.buff.extend(self.encodeInteger(self.crc, 2))
 
 
     def __updateBuff(self):
         '''
         @brief updates the values inside the TX buffer
         '''
-        self.buff_TX = bytearray([self.id])
-        self.buff_TX.extend(bytearray([self.command]))
-        self.buff_TX.extend(bytearray([self.length]))
-        self.buff_TX.extend(self.payload)
-        if self.crc != None:
-            self.buff_TX.extend(self.encodeInteger(self.crc, 2))
+        self.buff = bytearray([self.id])
+        self.buff.extend(bytearray([self.command]))
+        self.buff.extend(bytearray([self.length]))
+        self.buff.extend(self.payload)
 
 
-    def setBuff(self, data: bytearray):
-        '''
-        @brief assings the read data to the RX buffer
-        '''
-        self.buff_RX = bytearray()
-        self.buff_RX.extend(data)
-
-
-    def unpack(self):
+    def unpack(self, buffer):
         '''
         @brief it unpacks data incoming from UART
         
         @param len it is the lenght of the received buffer
         '''
-        if self.buff_RX[2] < 5:
+        if buffer[2] < 5:
             return
 
-        self.id = self.buff_RX[0]
-        self.command = self.buff_RX[1]
-        self.length = self.buff_RX[2]
+        self.id = buffer[0]
+        self.command = buffer[1]
+        self.length = buffer[2]
         for i in range(0, self.length):
-            self.payload[i] = self.buff_RX[i + 3]
-        self.crc = (self.buff_RX[self.length + 4] << 8) | self.buff_RX[self.length + 3]
+            self.payload[i] = buffer[i + 3]
+        self.crc = (buffer[FIX_PACKET_LENGTH - 1] << 8) | buffer[FIX_PACKET_LENGTH - 2]
 
 
     def getcrc(self):
@@ -144,10 +133,9 @@ class packet_t:
 
     def getBuff(self):
         '''
-        @brief returns the content of the buffer just updated
+        @brief returns the content of the buffer
         '''
-        self.__updateBuff()
-        return self.buff_TX
+        return self.buff
 
 
     def getParams(self):
@@ -230,7 +218,7 @@ class Oscup:
         self.id = id
         self.baudrate = baudrate
         self.intr_alloc_flags = 0
-        self.serialWriter = serial.Serial(port=com_port, baudrate=baudrate, timeout=0, write_timeout=0)
+        self.serialWriter = serial.Serial(port=com_port, baudrate=baudrate, timeout=0.01)
 
 
     def write(self, command: int, length: int, payload: bytearray):
@@ -259,31 +247,29 @@ class Oscup:
         start_time = self.get_timer()
         crc = random()
 
-        data = b''
         last_buff = b''
         while (crc != RX.getcrc() or cont == 0) and (self.get_timer() - start_time <= MAX_ACK_WAIT) and (cont <= MAX_ATTEMPTS):
             RX.reset()
 
             while True:
-                x = self.serialWriter.read()
-                if x != b'':
-                    data+= x[0:1]
-                else:
-                    RX.setBuff(data)
-                    RX.unpack()
+                buff = self.serialWriter.read(FIX_PACKET_LENGTH)
+                if buff == b'':
+                    return ErrorCodes.NO_DATA
 
-                    cont += 1
-                    _, command, _, _, _ =RX.getParams()
-                    if command == RxCommands.NACK:
-                        self.serialWriter.write(TX.getBuff())
-                    elif command == RxCommands.ACK:
-                        return ErrorCodes.OK
+                RX.unpack(buff)
 
-                    last_buff = data
-                    data = b''
+                cont += 1
+                _, command, _, _, _ = RX.getParams()
+                if command == RxCommands.NACK:
+                    self.serialWriter.write(TX.getBuff())
+                elif command == RxCommands.ACK:
                     break
+
+                last_buff = buff
+                buff = b''
+                break
         
-        if RX.getcrc() != packet_t.computeCRC(last_buff[:len(last_buff) - 2]):
+        if RX.getcrc() != packet_t.computeCRC(last_buff[FIX_PACKET_LENGTH - 2:]):
             return ErrorCodes.CRC_ERROR
 
         return ErrorCodes.OK
@@ -307,41 +293,34 @@ class Oscup:
         packetTX = packet_t(self.id)
         packetRX = packet_t()
 
-        data = b''
         while True:
-            x = self.serialWriter.read()
-            if x != b'':
-                data+= x[0:1]
+            buff = self.serialWriter.read(FIX_PACKET_LENGTH)
+            if buff != b'' and len(buff) == FIX_PACKET_LENGTH:
+                try:
+                    packetRX.unpack(buff)
+                    
+                    crc = packet_t.computeCRC(buff[:FIX_PACKET_LENGTH - 2])
+                    if(crc == packetRX.getcrc()):
+                        dummybuff = bytearray([0,0,0,0,0])
+                        packetTX.pack(RxCommands.ACK, 5, dummybuff) 
+                        self.serialWriter.write(packetTX.getBuff())
+                        break
+                    else:
+                        dummybuff = bytearray([0,0,0,0,0])
+                        packetTX.pack(RxCommands.NACK, 5, dummybuff) 
+                        self.serialWriter.write(packetTX.getBuff())
+                        return ErrorCodes.CRC_ERROR, packetRX
+                except Exception as e:
+                    print(str(e))
+                    pass
+                finally:    
+                    buff = b''
             else:
-                if data != b'':
-                    try:
-                        actualcrc = data[len(data)-2:]
-
-                        data_without_crc = data[:len(data) - 2]
-                        crc = packet_t.encodeInteger(packet_t.computeCRC(data_without_crc), 2) 
-
-                        if(crc == actualcrc):
-                            dummybuff = bytearray([0,0,0,0,0])
-                            packetTX.pack(RxCommands.ACK, 5, dummybuff) 
-                            self.write(packetTX.getBuff())
-                            break
-                        else:
-                            dummybuff = bytearray([0,0,0,0,0])
-                            packetTX.pack(RxCommands.NACK, 5, dummybuff) 
-                            self.write(packetTX.getBuff())
-                            return ErrorCodes.CRC_ERROR, packetRX
-                    except:
-                        pass
-                    finally:    
-                        data = b''
-                else:
-                    dummybuff = bytearray([0,0,0,0,0])
-                    packetTX.pack(RxCommands.NACK, 5, dummybuff) 
-                    self.write(packetTX.getBuff())
-                    return ErrorCodes.NO_DATA, packetRX
+                dummybuff = bytearray([0,0,0,0,0])
+                packetTX.pack(RxCommands.NACK, 5, dummybuff) 
+                self.serialWriter.write(packetTX.getBuff())
+                return ErrorCodes.NO_DATA, packetRX
         
-        packetRX.setBuff(data)
-        packetRX.unpack()
         return ErrorCodes.OK, packetRX
 
 
