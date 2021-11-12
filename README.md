@@ -16,7 +16,7 @@
 
  ### Description
  `OSCUP` is an open source UART protocolo designed for working with ESP32 ARM Processors. The code well documented helps to figure out how to implement a custom protocol on UART port. 
- With this protocol you can transmit and receive data wich are tracked by a fixed preamble. Next implementation will ad ACK and NACK for each packet sent.
+ With this protocol you can transmit and receive data which are tracked by a fixed preamble. Next implementation will ad ACK and NACK for each packet sent.
 
  ### How it Works
  It relies on primitive libraries provided by Espressiff, such as /device/uart.h for interfacing with the low level hardware and functions. The protocol provides two function  `write` and  `read` for sending and receiving data.
@@ -33,16 +33,19 @@ Obviously, you can configure the action you prefer to undertake each command. We
 
  ### Public Functions
   - `begin`: initializes the UART parameters and forwards it to the control hardware. It is mandatory to call it inside void setup().
-  - `write`: the write function takes a command "user-defined", the length of the payload and the effective payload, which has a fixed length of 255 bytes. This function writes this data on UART and returns an error code.
+  - `write`: the write function takes a command "user-defined", the length of the payload and the effective payload, which has a fixed length of 40 bytes. This function writes this data on UART and returns an error code.
   - `read`: It reads the data incoming and insert them in a packet_t struct, defined in .h file. It returs the lenght of the readed buffer if everything works fine, otherwise a negative error.
   - `get_timer`: returns the timer's counter
   - `get_APB_clk`: return the frequency of APB. Usually APB is used to set periphericals frequency on embedded processors.
   
 
  ### Lets Keep in Touch
- Follow us on YouTube: Https://youtube.com/c/ProjectoOfficial <br/>
- Follow us on Instagram: https://www.instagram.com/OfficialProjecTo/ <br/>
- Follow us on Facebook: https://www.facebook.com/MiniProjectsOfficial <br/>
+<a href="Https://youtube.com/c/ProjectoOfficial" target="_blank"><img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white"/></a>
+<a href="https://www.instagram.com/OfficialProjecTo/" target="_blank"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/></a>
+<a href="https://www.facebook.com/MiniProjectsOfficial" target="_blank"><img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white"/></a>
+<a href="https://www.tiktok.com/@officialprojecto" target="_blank"><img src="https://img.shields.io/badge/TikTok-000000?style=for-the-badge&logo=tiktok&logoColor=white"/></a>
+<a href="https://github.com/ProjectoOfficial" target="_blank"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"/></a>
+<a href="https://it.linkedin.com/company/officialprojecto" target="_blank"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"/></a>
 
  ### About
  This software is provided as it is, without any warranties. <br/>
