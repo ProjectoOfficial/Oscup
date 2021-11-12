@@ -6,7 +6,13 @@
     Copyright © 2021 Projecto - Dott. Daniel Rossi, Dott. Riccardo Salami
     License GPL-V3
 
-    Version: 1.2.0
+    @version 1.2.0
+    
+    @brief this example sketch uses oscup for writing data on UART. It initializes Oscup with a
+    fixed ID and Baudrate and initializes the protocol inside void setup function.
+    In the void loop it retrieves the value of the APB clock as an uint64_t, then it calls a function
+    which converts this value into an array of character and after that it writes this data on UART. 
+    Finishing, it calls a free on the buffer.
 */
 
 #include <stdlib.h>
@@ -23,23 +29,6 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i < 10; i++) {
-    //this function gets the counter of TIM (returns a uint64_t)
-    uint64_t tim = oscup.get_timer();
-    
-    //convert uint64_t to byte array
-    char *arr = uint64_toBytes(tim);
-
-    //write the packet, parameters: command(uint8_t), length of the payload(uint8_t), payload(char *)
-    uint8_t error = oscup.write((uint8_t)TxCommands::SHARE, sizeof(uint64_t), arr);
-    
-    delay(1);
-
-    //remember always to free dangling pointers!
-    free(arr);
-  }
-  delay(1000);
-
   //this function returns the APB clock frequency (set inside ESP32 libraries)
   uint64_t tim = oscup.get_APB_clk();
   
@@ -47,11 +36,13 @@ void loop() {
   char *arr2 = uint64_toBytes(tim);
   
   //write the packet, parameters: command(uint8_t), length of the payload(uint8_t), payload(char *)
-  uint8_t errore = oscup.write((uint8_t)TxCommands::SHARE, sizeof(uint64_t), arr2);
+  uint8_t error = oscup.write((uint8_t)TxCommands::SHARE, sizeof(uint64_t), arr2);
  
   //remember always to free dangling pointers!
   free(arr2);
-  delay(5000);
+
+  
+  delay(2000);
 }
 
 char *uint64_toBytes(uint64_t number) {

@@ -253,7 +253,7 @@ class Oscup:
 
             while True:
                 buff = self.serialWriter.read(FIX_PACKET_LENGTH)
-                if buff == b'':
+                if buff == b''and len(buff) == FIX_PACKET_LENGTH:
                     return ErrorCodes.NO_DATA
 
                 RX.unpack(buff)
@@ -267,7 +267,6 @@ class Oscup:
 
                 last_buff = buff
                 buff = b''
-                break
         
         if RX.getcrc() != packet_t.computeCRC(last_buff[FIX_PACKET_LENGTH - 2:]):
             return ErrorCodes.CRC_ERROR
