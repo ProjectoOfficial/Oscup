@@ -51,6 +51,6 @@ Obviously, you can configure the action you prefer to undertake each command. We
  This software is provided as it is, without any warranties. <br/>
  Authors: Dott. Daniel Rossi, Dott. Riccardo Salami both B.Sc. Software Engineers and M.Sc. Artificial Intelligence Engineering students
  
-<a href = "https://github.com/Your_GitHub_Username/Oscup/graphs/contributors">
+<a href = "https://github.com/ProjectoOfficial/Oscup/graphs/contributors">
 <img src = "https://contrib.rocks/image?repo=ProjectoOfficial/Oscup"/>
 </a>
