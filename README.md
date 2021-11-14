@@ -1,8 +1,7 @@
 # Oscup: Open Source Custom UART Protocol
- [![License](https://poser.pugx.org/aimeos/aimeos-typo3/license.svg)](https://packagist.org/packages/aimeos/aimeos-typo3)
+ [![License](https://badgen.net/badge/license/GPL-3.0/red?icon=github)]
  ![Hits](https://hitcounter.pythonanywhere.com/count/tag.svg?url=https://github.com/ProjectoOfficial/Oscup)
-  <img src="https://komarev.com/ghpvc/?username=ProjectoOfficial"/>
- 
+ ![Release](https://badgen.net/badge/release/v1.2.0-beta/green?icon=github)
  Contents
 ========
 
@@ -53,4 +52,3 @@ Obviously, you can configure the action you prefer to undertake each command. We
 <a href = "https://github.com/Your_GitHub_Username/Oscup/graphs/contributors">
 <img src = "https://contrib.rocks/image?repo=ProjectoOfficial/Oscup"/>
 </a>
-Made with [contributors-img](https://contrib.rocks).
