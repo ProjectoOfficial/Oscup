@@ -2,6 +2,8 @@
  ![License](https://badgen.net/badge/license/GPL-3.0/red?icon=github)
  ![Hits](https://hitcounter.pythonanywhere.com/count/tag.svg?url=https://github.com/ProjectoOfficial/Oscup)
  ![Release](https://badgen.net/badge/release/v1.2.0-beta/green?icon=github)
+ 
+ 
  Contents
 ========
 
