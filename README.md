@@ -49,4 +49,9 @@ Obviously, you can configure the action you prefer to undertake each command. We
  ### About
  This software is provided as it is, without any warranties. <br/>
  Authors: Dott. Daniel Rossi, Dott. Riccardo Salami both B.Sc. Software Engineers and M.Sc. Artificial Intelligence Engineering students
+ 
+<a href = "https://github.com/Your_GitHub_Username/Oscup/graphs/contributors">
+<img src = "https://contrib.rocks/image?repo=ProjectoOfficial/Oscup"/>
+</a>
+Made with [contributors-img](https://contrib.rocks).
  ![Your Repository’s Stats](https://github-readme-stats.vercel.app/api?username=ProjectoOfficial&show_icons=true)
