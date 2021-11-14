@@ -2,7 +2,6 @@
  [![License](https://poser.pugx.org/aimeos/aimeos-typo3/license.svg)](https://packagist.org/packages/aimeos/aimeos-typo3)
  ![Hits](https://hitcounter.pythonanywhere.com/count/tag.svg?url=https://github.com/ProjectoOfficial/Oscup)
   <img src="https://komarev.com/ghpvc/?username=ProjectoOfficial"/>
- [![License](https://poser.pugx.org/aimeos/aimeos-typo3/license.svg)](https://packagist.org/packages/aimeos/aimeos-typo3)
  
  Contents
 ========
