@@ -54,4 +54,3 @@ Obviously, you can configure the action you prefer to undertake each command. We
 <img src = "https://contrib.rocks/image?repo=ProjectoOfficial/Oscup"/>
 </a>
 Made with [contributors-img](https://contrib.rocks).
- ![Your Repository’s Stats](https://github-readme-stats.vercel.app/api?username=ProjectoOfficial&show_icons=true)
