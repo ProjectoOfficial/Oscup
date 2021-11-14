@@ -37,6 +37,6 @@
 * It is already possible to use it, please contact us for any bug!
 
 
-## [2.3](https://github.com/ProjectoOfficial/Oscup/releases/tag/Oscup) (2021-10-11)
+## [0.1.1-alpha](https://github.com/ProjectoOfficial/Oscup/releases/tag/Oscup) (2021-10-11)
 ### this first version allows to write data on UART. Read was is still not completely tested!
 
