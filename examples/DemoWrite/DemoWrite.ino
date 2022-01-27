@@ -16,16 +16,16 @@
 */
 
 #include <stdlib.h>
-#include "oscup.h"
+#include "Oscup.h"
 
 uint8_t id = 0x5D;
 
 //constructor takes device's ID and baudrate
-Oscup oscup = Oscup(id, 115200);
+Oscup oscup = Oscup(id);
 
 void setup() {
   //it is mandatory to call begin() for starting UART
-  oscup.begin();
+  oscup.begin(115200);
 }
 
 void loop() {

@@ -5,23 +5,25 @@
 * Version: ALPHA 1.2.0
 */
 
-#include "oscup.h"
+#include "Oscup.h"
 
-Oscup::Oscup(uint8_t id, uint32_t baudrate) {
+Oscup::Oscup(uint8_t id, uart_port_t port, int RXPin, int TXPin) {
     /* @brief initializes the UART of ESP32 by defining the hardware port and hardware pins
     *         and other UART's parameters
     *  
-    *  @param    id of this device
+    *  @param    id of this device, 
+    *            port UART communication port (let user choose wether to communicate with PC or with another MCU)
+    *            RXPin Rx Pin
+    *            TXPin Tx pin
     *  @param    communication baudrate
     */
 
     _id = id;
-    _baudrate = baudrate;
 
     // UART init
-    uart_port = uart_port_t::UART_NUM_0;
-    uart_rxd_pin = UART_RXD_PIN;
-    uart_txd_pin = UART_TXD_PIN;
+    uart_port = port;
+    uart_rxd_pin = RXPin;
+    uart_txd_pin = TXPin;
     uart_rts_pin = UART_RTS_PIN;
     uart_rts_pin = UART_CTS_PIN;
     intr_alloc_flags = 0;
@@ -29,14 +31,6 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
 #if CONFIG_UART_ISR_IN_IRAM
     intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
-
-    _uart_config = {
-        .baud_rate = baudrate,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-    };
 
     // TIMER init
     _timer_info.group = TIMER_GROUP_1;
@@ -46,7 +40,17 @@ Oscup::Oscup(uint8_t id, uint32_t baudrate) {
     tim_init(TIMER_PRESCALER_80MHZ); //APB should be 80MHz
 }
 
-void Oscup::begin(){
+void Oscup::begin(uint32_t baudrate){
+    _baudrate = baudrate;
+
+    _uart_config = {
+        .baud_rate = baudrate,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+
     uart_driver_install(uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags);
     uart_param_config(uart_port, &_uart_config);
     uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);

@@ -99,8 +99,8 @@ enum class ErrorCodes : uint8_t
 ******************************************************/
 class Oscup {
     public:
-        Oscup(uint8_t id, uint32_t baudrate);
-        void begin();
+        Oscup(uint8_t id, uart_port_t port = (uart_port_t)uart_port_t::UART_NUM_0, int RXPin = (int)UART_RXD_PIN, int TXPin = (int)UART_TXD_PIN);
+        void begin(uint32_t baudrate);
         uint8_t write(uint8_t command, uint8_t length, char* buffer);
         uint8_t read(packet_t* packet);
         uint64_t get_timer();
