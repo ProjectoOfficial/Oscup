@@ -27,12 +27,12 @@
  (just use arduino Serial). On the reciever, obviously, you must distinguish between the commands you recieve. There are avaialble 4 main commands:
   - `SHARE`: this command indicates that the sender just want to share this data with the receiver (for minor reasons). You can use it if you just want to print data on the other device.
   - `CONFIRM`: this command indicates that the data that will be sent are a consequence of an action (for example, we pressed a button on device 1, we send data to device 2 and we want that device 2 not only print this data but also store them).
-  - `ACK`: It will be used internally 
-  - `NACK`: It will be used internally
+  - `ACK`: It is used to tell the sender that the receiver has received the packet
+  - `NACK`: It is used to tell the sender that the receiver hasn't received the packet; the sender will try to send it again
 Obviously, you can configure the action you prefer to undertake each command. We suggest not to use ACK and NACK, as for the other two, the previous indications are only guidelines that we have defined for using those two commands. Also, you can configure new commands on arduino (command = uint8_t) and send them directly in the write function
 
  ### Public Functions
-  - `begin`: initializes the UART parameters and forwards it to the control hardware. It is mandatory to call it inside void setup().
+  - `begin`: initializes the UART parameters and forwards it to the control hardware. It is mandatory to call it inside void setup(). It takes the baudrate as the only input parameters which will determine the communication baudrate.
   - `write`: the write function takes a command "user-defined", the length of the payload and the effective payload, which has a fixed length of 40 bytes. This function writes this data on UART and returns an error code.
   - `read`: It reads the data incoming and insert them in a packet_t struct, defined in .h file. It returs the lenght of the readed buffer if everything works fine, otherwise a negative error.
   - `get_timer`: returns the timer's counter
