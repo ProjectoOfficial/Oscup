@@ -15,7 +15,7 @@
 
  ### Description
  `OSCUP` is an open source UART protocolo designed for working with ESP32 ARM Processors. The code well documented helps to figure out how to implement a custom protocol on UART port. 
- With this protocol you can transmit and receive data which are tracked by a fixed preamble. Next implementation will ad ACK and NACK for each packet sent.
+ With this protocol you can transmit and receive data which are tracked by a fixed preamble. It implements ACK and NACK for each packet sent, for managing errors or lost packets.
 
  ### How it Works
  It relies on primitive libraries provided by Espressiff, such as /device/uart.h for interfacing with the low level hardware and functions. The protocol provides two function  `write` and  `read` for sending and receiving data.
