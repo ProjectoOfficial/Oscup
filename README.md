@@ -1,6 +1,5 @@
 # Oscup: Open Source Custom UART Protocol
  ![License](https://badgen.net/badge/license/GPL-3.0/red?icon=github)
- ![Hits](https://hitcounter.pythonanywhere.com/count/tag.svg?url=https://github.com/ProjectoOfficial/Oscup)
  ![Release](https://badgen.net/badge/release/v1.2.1/green?icon=github)
  
  
@@ -20,8 +19,14 @@
 
  ### How it Works
  It relies on primitive libraries provided by Espressiff, such as /device/uart.h for interfacing with the low level hardware and functions. The protocol provides two function  `write` and  `read` for sending and receiving data.
- When you create a new Oscup object you need to pass it an ID which keeps track of the device who sent the packet, and the communication's baudrate. Once the object is created, you can call write and read functions.
-
+ When you create a new Oscup object you need to pass it an ID which keeps track of the device who sent the packet. Optionally the Oscup object can be istantiated specifying the UART port and the correlated UART TX pin and UART RX pin. By default the communication takes place on UART 0, or rather the USB port.
+ 
+ In fact, it is possible to use OSCUP for a communication between a computer and an ESP32, or between two ESP32 in the following way
+ <p align="center">
+ <img src="https://github.com/ProjectoOfficial/Oscup/blob/main/images/OSCUP_MCU_MCU.jpg" width="600" height="400"/>
+ </p>
+ 
+ 
  ### Commands
  Every time the protocol writes data on UART, it inserts a command inside the packet. The command is mandatory, otherwise you may ask yourself why you want to use a protocol 
  (just use arduino Serial). On the reciever, obviously, you must distinguish between the commands you recieve. There are avaialble 4 main commands:
