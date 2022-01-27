@@ -117,14 +117,14 @@ class Oscup {
         char _TXBuffer[FIX_PACKET_LENGTH];
 
         uart_config_t _uart_config;
-        uart_port_t uart_port;        
+        uart_port_t _uart_port;        
 
-        int uart_rxd_pin;
-        int uart_txd_pin;
-        int uart_rts_pin;
-        int uart_cts_pin;
+        int _uart_rxd_pin;
+        int _uart_txd_pin;
+        int _uart_rts_pin;
+        int _uart_cts_pin;
 
-        int intr_alloc_flags;
+        int _intr_alloc_flags;
 
         timer_config_t _timer_config;
         timer_info_t _timer_info;

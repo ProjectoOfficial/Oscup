@@ -21,15 +21,15 @@ Oscup::Oscup(uint8_t id, uart_port_t port, int RXPin, int TXPin) {
     _id = id;
 
     // UART init
-    uart_port = port;
-    uart_rxd_pin = RXPin;
-    uart_txd_pin = TXPin;
-    uart_rts_pin = UART_RTS_PIN;
-    uart_rts_pin = UART_CTS_PIN;
-    intr_alloc_flags = 0;
+    _uart_port = port;
+    _uart_rxd_pin = RXPin;
+    _uart_txd_pin = TXPin;
+    _uart_rts_pin = UART_RTS_PIN;
+    _uart_cts_pin = UART_CTS_PIN;
+    _intr_alloc_flags = 0;
 
 #if CONFIG_UART_ISR_IN_IRAM
-    intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+    _intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
 
     // TIMER init
@@ -51,9 +51,9 @@ void Oscup::begin(uint32_t baudrate){
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
 
-    uart_driver_install(uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags);
-    uart_param_config(uart_port, &_uart_config);
-    uart_set_pin(uart_port, uart_txd_pin, uart_rxd_pin, uart_rts_pin, uart_cts_pin);
+    uart_driver_install(_uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, _intr_alloc_flags);
+    uart_param_config(_uart_port, &_uart_config);
+    uart_set_pin(_uart_port, _uart_txd_pin, _uart_rxd_pin, _uart_rts_pin, _uart_cts_pin);
 }
 
 
@@ -104,7 +104,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         return error;
 
     bufferize(&_packet_tx);
-    uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+    uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
 
     uint16_t crc;
     int cont = 0;
@@ -114,14 +114,14 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
-            uart_read_bytes(uart_port, (uint8_t *) &_RXBuffer, FIX_PACKET_LENGTH, 10);
+            uart_read_bytes(_uart_port, (uint8_t *) &_RXBuffer, FIX_PACKET_LENGTH, 10);
             unpack();
             crc = computeCRC(_RXBuffer, FIX_PACKET_LENGTH - 2);
             
             if (_packet_rx.command == (uint8_t)RxCommands::ACK)
                 break;
             sleep(10);
-            uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH); //if NACK or empty
+            uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH); //if NACK or empty
 
             cont++;
         }
@@ -197,11 +197,11 @@ uint8_t Oscup::read(packet_t *packet) {
     resetRX(); 
     resetTX();
 
-    uint16_t len = uart_read_bytes(uart_port, (uint8_t*)&_RXBuffer, FIX_PACKET_LENGTH, 1); 
+    uint16_t len = uart_read_bytes(_uart_port, (uint8_t*)&_RXBuffer, FIX_PACKET_LENGTH, 1); 
 
     if (len == 0) {
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::NO_DATA;
     }
 
@@ -210,12 +210,12 @@ uint8_t Oscup::read(packet_t *packet) {
 
     if (_packet_rx.crc != crc) {
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::CRC_ERROR;
     }
     else {
         bufferize(&_packet_tx);
-        uart_write_bytes(uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
  
     }
 
