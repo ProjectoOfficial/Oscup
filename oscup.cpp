@@ -18,30 +18,30 @@ Oscup::Oscup(uint8_t id, uart_port_t port, int RXPin, int TXPin) {
     *  @param    communication baudrate
     */
 
-    _id = id;
+    id_ = id;
 
     // UART init
     _uart_port = port;
-    _uart_rxd_pin = RXPin;
-    _uart_txd_pin = TXPin;
-    _uart_rts_pin = UART_RTS_PIN;
-    _uart_cts_pin = UART_CTS_PIN;
-    _intr_alloc_flags = 0;
+    uart_rxd_pin_ = RXPin;
+    uart_txd_pin_ = TXPin;
+    uart_rts_pin_ = UART_RTS_PIN;
+    uart_cts_pin_ = UART_CTS_PIN;
+    intr_alloc_flags_ = 0;
 
 #if CONFIG_UART_ISR_IN_IRAM
-    _intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+    intr_alloc_flags_ = ESP_INTR_FLAG_IRAM;
 #endif
 
     // TIMER init
-    _timer_info.group = TIMER_GROUP_1;
-    _timer_info.index = TIMER_1;
-    _timer_info.auto_reload = true;
-    _timer_info.alarm_value = 0;
+    timer_info_.group = TIMER_GROUP_1;
+    timer_info_.index = TIMER_1;
+    timer_info_.auto_reload = true;
+    timer_info_.alarm_value = 0;
     tim_init(TIMER_PRESCALER_80MHZ); //APB should be 80MHz
 }
 
-void Oscup::begin(uint32_t baudrate){
-    _baudrate = baudrate;
+void Oscup::begin(const uint32_t baudrate){
+    baudrate_ = baudrate;
 
     _uart_config = {
         .baud_rate = baudrate,
@@ -51,31 +51,31 @@ void Oscup::begin(uint32_t baudrate){
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
 
-    uart_driver_install(_uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, _intr_alloc_flags);
+    uart_driver_install(_uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags_);
     uart_param_config(_uart_port, &_uart_config);
-    uart_set_pin(_uart_port, _uart_txd_pin, _uart_rxd_pin, _uart_rts_pin, _uart_cts_pin);
+    uart_set_pin(_uart_port, uart_txd_pin_, uart_rxd_pin_, uart_rts_pin_, uart_cts_pin_);
 }
 
 
-void Oscup::tim_init(int prescaler){
+void Oscup::tim_init(const int prescaler){
     /* @brief initializes the timer and its variables
     *   
     *  @param prescaler used for APB frequency scaling
     */
 
-    _timer_config.divider = prescaler;
-    _timer_config.counter_dir = TIMER_COUNT_UP;
-    _timer_config.counter_en = true;
-    _timer_config.alarm_en = true;
-    _timer_config.auto_reload = _timer_info.auto_reload;
+    timer_config_.divider = prescaler;
+    timer_config_.counter_dir = TIMER_COUNT_UP;
+    timer_config_.counter_en = true;
+    timer_config_.alarm_en = true;
+    timer_config_.auto_reload = timer_info_.auto_reload;
 
-    timer_init(_timer_info.group, _timer_info.index, &_timer_config);
+    timer_init(timer_info_.group, timer_info_.index, &timer_config_);
 
-    timer_set_counter_value(_timer_info.group, _timer_info.index, 0);
-    timer_set_alarm_value(_timer_info.group, _timer_info.index, _timer_info.alarm_value);
-    timer_set_alarm(_timer_info.group, _timer_info.index, TIMER_ALARM_EN);
-    timer_set_counter_value(_timer_info.group, _timer_info.index, 0);
-    timer_start(_timer_info.group, _timer_info.index);
+    timer_set_counter_value(timer_info_.group, timer_info_.index, 0);
+    timer_set_alarm_value(timer_info_.group, timer_info_.index, timer_info_.alarm_value);
+    timer_set_alarm(timer_info_.group, timer_info_.index, TIMER_ALARM_EN);
+    timer_set_counter_value(timer_info_.group, timer_info_.index, 0);
+    timer_start(timer_info_.group, timer_info_.index);
 
 }
 
@@ -103,25 +103,25 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     if (error)
         return error;
 
-    bufferize(&_packet_tx);
-    uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+    bufferize(&packet_tx_);
+    uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
 
     uint16_t crc;
     int cont = 0;
     uint64_t start_time = get_timer();
     return (uint8_t)ErrorCodes::OK;
-    while((_packet_rx.crc != crc || cont == 0) && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
+    while((packet_rx_.crc != crc || cont == 0) && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
-            uart_read_bytes(_uart_port, (uint8_t *) &_RXBuffer, FIX_PACKET_LENGTH, 10);
+            uart_read_bytes(_uart_port, (uint8_t *) &RXBuffer_, FIX_PACKET_LENGTH, 10);
             unpack();
-            crc = computeCRC(_RXBuffer, FIX_PACKET_LENGTH - 2);
+            crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
             
-            if (_packet_rx.command == (uint8_t)RxCommands::ACK)
+            if (packet_rx_.command == (uint8_t)RxCommands::ACK)
                 break;
             sleep(10);
-            uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH); //if NACK or empty
+            uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH); //if NACK or empty
 
             cont++;
         }
@@ -129,7 +129,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
 
     resetTX();
     resetRX();
-    if(_packet_rx.crc != crc)
+    if(packet_rx_.crc != crc)
         return (uint8_t)ErrorCodes::CRC_ERROR;
 
     return (uint8_t)ErrorCodes::OK;
@@ -146,15 +146,15 @@ uint8_t Oscup::pack(uint8_t command, uint8_t length, char *buffer) {
     *  @return it returns feedback on writing result
     */
 
-    _packet_tx.command = command;
-    _packet_tx.length = length;
+    packet_tx_.command = command;
+    packet_tx_.length = length;
     try {
-        memmove(&_packet_tx.payload, buffer, length);
+        memmove(&packet_tx_.payload, buffer, length);
     } 
     catch(int e){return (uint8_t)ErrorCodes::PACKMEMMOVE_ERROR;}
 
-    bufferize(&_packet_tx);
-    _packet_tx.crc = computeCRC(_TXBuffer, FIX_PACKET_LENGTH - 2);
+    bufferize(&packet_tx_);
+    packet_tx_.crc = computeCRC(TXBuffer_, FIX_PACKET_LENGTH - 2);
 
     return (uint8_t)ErrorCodes::OK;
 }
@@ -170,15 +170,15 @@ void Oscup::bufferize(packet_t *packet) {
    if(packet == NULL)
        return;
 
-    _TXBuffer[0] = packet->id = _id;
-    _TXBuffer[1] = packet->command;
-    _TXBuffer[2] = packet->length;
+    TXBuffer_[0] = packet->id = id_;
+    TXBuffer_[1] = packet->command;
+    TXBuffer_[2] = packet->length;
     for (uint8_t i = 3; i < 3 + packet->length; i++)
-        _TXBuffer[i] = packet->payload[i - 3];
+        TXBuffer_[i] = packet->payload[i - 3];
 
     if (packet->crc) {
-        _TXBuffer[FIX_PACKET_LENGTH - 1] = packet->crc >> 8;
-        _TXBuffer[FIX_PACKET_LENGTH - 2] = packet->crc & 0xFF;
+        TXBuffer_[FIX_PACKET_LENGTH - 1] = packet->crc >> 8;
+        TXBuffer_[FIX_PACKET_LENGTH - 2] = packet->crc & 0xFF;
     }
 }
 
@@ -192,38 +192,42 @@ uint8_t Oscup::read(packet_t *packet) {
     */
 
     uint16_t crc;
-    int cont = 0;
-    uint64_t start_time = get_timer();
     resetRX(); 
     resetTX();
 
-    uint16_t len = uart_read_bytes(_uart_port, (uint8_t*)&_RXBuffer, FIX_PACKET_LENGTH, 1); 
+    packet_tx_.id = id_;
+    packet_tx_.command = (uint8_t)RxCommands::NACK;
+
+    uint16_t len = uart_read_bytes(_uart_port, (uint8_t*)&RXBuffer_, FIX_PACKET_LENGTH, 1); 
 
     if (len == 0) {
-        bufferize(&_packet_tx);
-        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+        bufferize(&packet_tx_);
+        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::NO_DATA;
     }
 
     unpack();
-    crc = computeCRC(_RXBuffer, FIX_PACKET_LENGTH - 2);
+    crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
 
-    if (_packet_rx.crc != crc) {
-        bufferize(&_packet_tx);
-        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
+    if (packet_rx_.crc != crc) {
+        bufferize(&packet_tx_);
+        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::CRC_ERROR;
     }
     else {
-        bufferize(&_packet_tx);
-        uart_write_bytes(_uart_port, (const char*)_TXBuffer, FIX_PACKET_LENGTH);
- 
+        packet_tx_.command = (uint8_t)RxCommands::ACK;
+        bufferize(&packet_tx_);
+        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
     }
 
-    packet->id = _packet_rx.id;
-    packet->command = _packet_rx.command;
-    packet->length = _packet_rx.length;
-    memmove(packet->payload, &_packet_rx.payload, packet->length);
-    packet->crc = _packet_rx.crc;
+    if(packet_rx_.length <= 5)
+        return (uint8_t)ErrorCodes::NO_DATA;
+
+    packet->id = packet_rx_.id;
+    packet->command = packet_rx_.command;
+    packet->length = packet_rx_.length;
+    memmove(packet->payload, packet_rx_.payload, packet->length);
+    packet->crc = packet_rx_.crc;
 
     return (uint8_t)ErrorCodes::OK;
 }
@@ -234,47 +238,44 @@ void Oscup::unpack() {
     *
     *  @param len it is the lenght of the received buffer
     */
-    if (_RXBuffer[0] == 0)
+    if (RXBuffer_[2] < 5)
         return;
 
-    if (_RXBuffer[2] < 5)
-        return;
-
-    _packet_rx.id = _RXBuffer[0];
-    _packet_rx.command = _RXBuffer[1];
-    _packet_rx.length = _RXBuffer[2];
-    for (int i = 0; i < _packet_rx.length; i++)
-        _packet_rx.payload[i] = _RXBuffer[i + 3];
-    _packet_rx.crc = (_RXBuffer[FIX_PACKET_LENGTH - 1] << 8) | _RXBuffer[FIX_PACKET_LENGTH - 2];
+    packet_rx_.id = RXBuffer_[0];
+    packet_rx_.command = RXBuffer_[1];
+    packet_rx_.length = RXBuffer_[2];
+    for (int i = 0; i < packet_rx_.length; i++)
+        packet_rx_.payload[i] = RXBuffer_[i + 3];
+    packet_rx_.crc = (RXBuffer_[FIX_PACKET_LENGTH - 1] << 8) | RXBuffer_[FIX_PACKET_LENGTH - 2];
 }
 
 
 void Oscup::resetRX() {
-    /* @brief resets RXBuffer and _packet_rx
+    /* @brief resets RXBuffer and packet_rx_
     */
-    _packet_rx.id = 0;
-    _packet_rx.command = 0;
-    _packet_rx.length = 0;
+    packet_rx_.id = 0;
+    packet_rx_.command = 0;
+    packet_rx_.length = 0;
     for (int i = 0; i < MAX_PAYLOAD_LENGTH ; i++)
-        _packet_tx.payload[i] = 0;
-    _packet_rx.crc = 0;
+        packet_tx_.payload[i] = 0;
+    packet_rx_.crc = 0;
 
     for (int i = 0; i < FIX_PACKET_LENGTH; i++)
-        _RXBuffer[i] = 0;
+        RXBuffer_[i] = 0;
 }
 
 
 void Oscup::resetTX() {
-    /* @brief resets TXBuffer and _packet_tx
+    /* @brief resets TXBuffer and packet_tx_
     */
-    _packet_tx.command = 0;
-    _packet_tx.length = 0;
+    packet_tx_.command = 0;
+    packet_tx_.length = 0;
     for (int i = 0; i < MAX_PAYLOAD_LENGTH; i++)
-        _packet_tx.payload[i] = 0;
-    _packet_tx.crc = 0;
+        packet_tx_.payload[i] = 0;
+    packet_tx_.crc = 0;
 
     for (int i = 0; i < FIX_PACKET_LENGTH; i++)
-        _TXBuffer[i] = 0;
+        TXBuffer_[i] = 0;
 }
 
 
@@ -310,23 +311,23 @@ uint16_t Oscup::computeCRC(char *buffer, uint16_t len) {
   return crc;
 }
 
-void Oscup::sleep(uint64_t ms) {
+void Oscup::sleep(const uint64_t ms) {
     uint64_t start_time = get_timer();
     while (get_timer() - start_time < ms * 10);
 }
 
-uint64_t Oscup::get_timer(){
+uint64_t Oscup::get_timer() const{
     /* @brief returns the value of the hardware counter timer
     *  
     *  @return uint64_t counter value    
     */
 
     uint64_t timval = 0;
-    timer_get_counter_value(_timer_info.group, _timer_info.index, &timval);  
+    timer_get_counter_value(timer_info_.group, timer_info_.index, &timval);  
     return timval;
 }
 
-uint64_t Oscup::get_APB_clk(){
+uint64_t Oscup::get_APB_clk() const{
     /* @brief returns the APB Clock Frequency
     *  
     *  @return APB clock Freq

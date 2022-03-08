@@ -8,7 +8,6 @@
 #ifndef OSCUP_H_
 #define OSCUP_H_
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -100,42 +99,42 @@ enum class ErrorCodes : uint8_t
 class Oscup {
     public:
         Oscup(uint8_t id, uart_port_t port = (uart_port_t)uart_port_t::UART_NUM_0, int RXPin = (int)UART_RXD_PIN, int TXPin = (int)UART_TXD_PIN);
-        void begin(uint32_t baudrate);
+        void begin(const uint32_t baudrate);
         uint8_t write(uint8_t command, uint8_t length, char* buffer);
         uint8_t read(packet_t* packet);
-        uint64_t get_timer();
-        uint64_t get_APB_clk();
+        uint64_t get_timer() const;
+        uint64_t get_APB_clk() const;
 
     private:
-        uint8_t _id;
-        uint32_t _baudrate;
+        uint8_t id_;
+        uint32_t baudrate_;
 
-        packet_t _packet_rx;
-        packet_t _packet_tx;
+        packet_t packet_rx_;
+        packet_t packet_tx_;
 
-        char _RXBuffer[FIX_PACKET_LENGTH];
-        char _TXBuffer[FIX_PACKET_LENGTH];
+        char RXBuffer_[FIX_PACKET_LENGTH];
+        char TXBuffer_[FIX_PACKET_LENGTH];
 
         uart_config_t _uart_config;
         uart_port_t _uart_port;        
 
-        int _uart_rxd_pin;
-        int _uart_txd_pin;
-        int _uart_rts_pin;
-        int _uart_cts_pin;
+        int uart_rxd_pin_;
+        int uart_txd_pin_;
+        int uart_rts_pin_;
+        int uart_cts_pin_;
 
-        int _intr_alloc_flags;
+        int intr_alloc_flags_;
 
-        timer_config_t _timer_config;
-        timer_info_t _timer_info;
+        timer_config_t timer_config_;
+        timer_info_t timer_info_;
 
-        void tim_init(int prescaler);  
+        void tim_init(const int prescaler);  
         uint8_t pack(uint8_t command, uint8_t length, char* buffer);
         void bufferize(packet_t *packet);
         void unpack();
         void resetRX();
         void resetTX();
-        void sleep(uint64_t ms);
+        void sleep(const uint64_t ms);
         uint16_t computeCRC(char* buff, uint16_t len);
 };
 

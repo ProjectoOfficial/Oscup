@@ -7,11 +7,11 @@
     License GPL-V3
 
     @version 1.2.0
-    
+
     @brief this example sketch uses oscup for writing data on UART. It initializes Oscup with a
     fixed ID and Baudrate and initializes the protocol inside void setup function.
     In the void loop it retrieves the value of the APB clock as an uint64_t, then it calls a function
-    which converts this value into an array of character and after that it writes this data on UART. 
+    which converts this value into an array of character and after that it writes this data on UART.
     Finishing, it calls a free on the buffer.
 */
 
@@ -28,29 +28,43 @@ void setup() {
   oscup.begin(115200);
 }
 
+unsigned long wait_time = millis();
+
 void loop() {
   //this function returns the APB clock frequency (set inside ESP32 libraries)
   uint64_t tim = oscup.get_APB_clk();
-  
+
   //convert uint64_t to byte array
   char *arr2 = uint64_toBytes(tim);
-  
+
   //write the packet, parameters: command(uint8_t), length of the payload(uint8_t), payload(char *)
   uint8_t error = oscup.write((uint8_t)TxCommands::SHARE, sizeof(uint64_t), arr2);
- 
+
   //remember always to free dangling pointers!
   free(arr2);
 
-  
+  uint8_t read_error = 1;
+  packet_t read_packet;
+  while (millis() - wait_time < 200 && read_error != (uint8_t)ErrorCodes::OK){
+    error = oscup.read(&read_packet);
+  }
+
+  if(error == (uint8_t)ErrorCodes::OK){
+    String str = "GG bro";
+    oscup.write((uint8_t)TxCommands::CONFIRM, str.length(),(char*) str.c_str());
+  }else{
+    String str = "Mannaggia";
+    oscup.write((uint8_t)TxCommands::SHARE, str.length(),(char*) str.c_str());    
+  }
   delay(2000);
 }
 
 char *uint64_toBytes(uint64_t number) {
   /*@brief converts a uint64_t into a char * pointer
-   * 
-   * @param number uint64_t you want to convert
-   * 
-   * @return the pointer containing the new array of chars
+
+     @param number uint64_t you want to convert
+
+     @return the pointer containing the new array of chars
   */
   size_t dim = sizeof(uint64_t);
   char *buff = (char *)calloc(dim, sizeof(char));

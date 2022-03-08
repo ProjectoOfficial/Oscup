@@ -42,6 +42,7 @@ class ErrorCodes:
     NACK = 0x07
     PACK_ERROR = 0x08
     NO_DATA = 0x09
+    UNPACK_ERROR = 0x10
     
 
 
@@ -105,7 +106,8 @@ class packet_t:
         self.buff.extend(bytearray([self.command]))
         self.buff.extend(bytearray([self.length]))
         self.buff.extend(self.payload)
-
+        if(len(self.payload) < MAX_PAYLOAD_LENGTH):
+            self.buff.extend(bytearray([0] * (MAX_PAYLOAD_LENGTH - len(self.payload))))
 
     def unpack(self, buffer):
         '''
@@ -113,15 +115,19 @@ class packet_t:
         
         @param len it is the lenght of the received buffer
         '''
-        if buffer[2] < 5:
-            return
+        if buffer == None or len(buffer) < 3:
+            return ErrorCodes.UNPACK_ERROR
 
+        if buffer[2] < 5:
+            return ErrorCodes.UNPACK_ERROR
+        
         self.id = buffer[0]
         self.command = buffer[1]
         self.length = buffer[2]
         for i in range(0, self.length):
             self.payload[i] = buffer[i + 3]
         self.crc = (buffer[FIX_PACKET_LENGTH - 1] << 8) | buffer[FIX_PACKET_LENGTH - 2]
+        return ErrorCodes.OK
 
 
     def getcrc(self):
@@ -243,33 +249,41 @@ class Oscup:
 
         RX = packet_t()
 
-        cont = 0
         start_time = self.get_timer()
         crc = random()
+        times = 0
 
-        last_buff = b''
-        while (crc != RX.getcrc() or cont == 0) and (self.get_timer() - start_time <= MAX_ACK_WAIT) and (cont <= MAX_ATTEMPTS):
+        while True:
             RX.reset()
 
-            while True:
-                buff = self.serialWriter.read(FIX_PACKET_LENGTH)
-                if buff == b''and len(buff) == FIX_PACKET_LENGTH:
-                    return ErrorCodes.NO_DATA
+            buff = self.serialWriter.read(FIX_PACKET_LENGTH)
+            if buff != b'' and len(buff) == FIX_PACKET_LENGTH:
+                try:
+                    RX.unpack(buff)
 
-                RX.unpack(buff)
+                    _, command, _, _, _ = RX.getParams()
+                    
+                    crc = packet_t.computeCRC(buff[:FIX_PACKET_LENGTH - 2])
+                    if crc == RX.getcrc() :
+                        if command == RxCommands.ACK:
+                            break
+                        else:
+                            return ErrorCodes.NACK
+                    else:
+                        return ErrorCodes.CRC_ERROR
+                    
+                except Exception as e:
+                    print(str(e))
+                    pass
+                finally:    
+                    buff = b''
 
-                cont += 1
-                _, command, _, _, _ = RX.getParams()
-                if command == RxCommands.NACK:
-                    self.serialWriter.write(TX.getBuff())
-                elif command == RxCommands.ACK:
-                    break
+            if self.get_timer() - start_time <= MAX_ACK_WAIT:
+                return ErrorCodes.NO_DATA
 
-                last_buff = buff
-                buff = b''
-        
-        if RX.getcrc() != packet_t.computeCRC(last_buff[FIX_PACKET_LENGTH - 2:]):
-            return ErrorCodes.CRC_ERROR
+            if times > MAX_ATTEMPTS:
+                return ErrorCodes.NO_DATA
+            times += 1
 
         return ErrorCodes.OK
 
@@ -292,11 +306,15 @@ class Oscup:
         packetTX = packet_t(self.id)
         packetRX = packet_t()
 
+        times = 0
+
         while True:
             buff = self.serialWriter.read(FIX_PACKET_LENGTH)
             if buff != b'' and len(buff) == FIX_PACKET_LENGTH:
                 try:
-                    packetRX.unpack(buff)
+                    error = packetRX.unpack(buff)
+                    if error == ErrorCodes.UNPACK_ERROR:
+                        continue
                     
                     crc = packet_t.computeCRC(buff[:FIX_PACKET_LENGTH - 2])
                     if(crc == packetRX.getcrc()):
@@ -319,6 +337,10 @@ class Oscup:
                 packetTX.pack(RxCommands.NACK, 5, dummybuff) 
                 self.serialWriter.write(packetTX.getBuff())
                 return ErrorCodes.NO_DATA, packetRX
+            
+            if times > MAX_ATTEMPTS:
+                return ErrorCodes.NO_DATA
+            times += 1
         
         return ErrorCodes.OK, packetRX
 

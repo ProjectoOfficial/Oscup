@@ -13,8 +13,6 @@
 #include "Oscup.h"
 
 uint8_t id = 0x5D;
-packet_t packet;
-uint8_t errore = 255;
 
 //constructor takes device's ID and baudrate
 Oscup oscup = Oscup(id);
@@ -24,9 +22,46 @@ void setup() {
   oscup.begin(115200);
 }
 
+unsigned long start_time = millis();
+
 void loop() {
-  errore = oscup.read(&packet);
+  packet_t packet;
+  uint8_t errore = 255;
 
-  delay(3000);
+  start_time = millis();
+  while (errore != (uint8_t)ErrorCodes::OK && millis() - start_time < 200) {
+    errore = oscup.read(&packet);
+  }
 
+  delay(20);
+
+  if (errore != (uint8_t)ErrorCodes::OK) {
+    String str = "No Data";
+    oscup.write((uint8_t)TxCommands::SHARE, str.length() , (char *)str.c_str());
+  } else {
+    if (packet.length == 0) {
+      String str = "empty";
+      oscup.write((uint8_t)TxCommands::SHARE, str.length() , (char *)str.c_str());
+    } else {
+      uint64_t l = packet.length;
+      char *arr2 = uint64_toBytes(l);
+      oscup.write((uint8_t)TxCommands::CONFIRM, sizeof(uint64_t), arr2);
+    }
+  }
+  delay(1000);
+}
+
+char *uint64_toBytes(uint64_t number) {
+  /*@brief converts a uint64_t into a char * pointer
+
+     @param number uint64_t you want to convert
+
+     @return the pointer containing the new array of chars
+  */
+  size_t dim = sizeof(uint64_t);
+  char *buff = (char *)calloc(dim, sizeof(char));
+  for (int i = 0 ; i < dim; i++) {
+    buff[i] = (number >> (8 * i)) & 0xFF;
+  }
+  return buff;
 }
