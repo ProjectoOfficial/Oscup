@@ -7,6 +7,7 @@ Version: ALPHA 1.2.0
 
 from pyOscup import Oscup
 from pyOscup import ErrorCodes
+from pyOscup import packet_t
 from struct import unpack
 from time import time, sleep
 
@@ -19,8 +20,8 @@ oscup = Oscup(id, baudrate, port)
 while True:
     val = 1234
 
-    valbyte = val.to_bytes(8, 'big')
-    error = oscup.write(TxCommands.SHARE ,4 ,valbyte)
+    valbyte = val.to_bytes(4, 'big')
+    error = oscup.write(TxCommands.SHARE ,len(valbyte) ,valbyte)
 
     error = ErrorCodes.NO_DATA
     start = time()
@@ -35,11 +36,13 @@ while True:
         print("Data incoming:")
         id, command, length, payload, crc = packet.getParams()
         print("id: {} - command: {} - length: {}".format(hex(id), command, length))
-        print("payload: {}".format(payload))
-        if command == TxCommands.CONFIRM:
+        print("payload:")
+        print(packet_t.translate_bytes(payload))
+        if command == TxCommands.CONFIRM or command == 3:
             print(len(valbyte))
             print("long long value: {}".format(unpack('Q', bytearray(payload[:8]))))
-        print("crc: {}".format(crc))
+            print("packet crc: {} --> calculated crc: {}".format(crc, packet_t.computeCRC(packet.getBuff()[:-2])))
+            
         print("\n\n")
     
     sleep(0.01)

@@ -109,12 +109,13 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
     uint16_t crc;
     int cont = 0;
     uint64_t start_time = get_timer();
-    return (uint8_t)ErrorCodes::OK;
+
     while((packet_rx_.crc != crc || cont == 0) && (get_timer() - start_time) <= MAX_ACK_WAIT && cont <= MAX_ATTEMPTS) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
             uart_read_bytes(_uart_port, (uint8_t *) &RXBuffer_, FIX_PACKET_LENGTH, 10);
+            sleep(1);
             unpack();
             crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
             
@@ -122,7 +123,6 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
                 break;
             sleep(10);
             uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH); //if NACK or empty
-
             cont++;
         }
     } 
@@ -190,7 +190,7 @@ uint8_t Oscup::read(packet_t *packet) {
     * 
     *  @return it returns feedback on reading result
     */
-
+    uart_flush(_uart_port);
     uint16_t crc;
     resetRX(); 
     resetTX();
@@ -198,15 +198,16 @@ uint8_t Oscup::read(packet_t *packet) {
     packet_tx_.id = id_;
     packet_tx_.command = (uint8_t)RxCommands::NACK;
 
-    uint16_t len = uart_read_bytes(_uart_port, (uint8_t*)&RXBuffer_, FIX_PACKET_LENGTH, 1); 
+    int exit_code = uart_read_bytes(_uart_port, (uint8_t*) &RXBuffer_, FIX_PACKET_LENGTH, 100); 
 
-    if (len == 0) {
+    if (exit_code == ESP_FAIL) {
         bufferize(&packet_tx_);
         uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::NO_DATA;
     }
 
     unpack();
+    sleep(5);
     crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
 
     if (packet_rx_.crc != crc) {
@@ -220,8 +221,8 @@ uint8_t Oscup::read(packet_t *packet) {
         uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
     }
 
-    if(packet_rx_.length <= 5)
-        return (uint8_t)ErrorCodes::NO_DATA;
+    if(packet_rx_.length <= FIX_PACKET_LENGTH - MAX_PAYLOAD_LENGTH)
+        return (uint8_t)ErrorCodes::LENGTH_ERROR;
 
     packet->id = packet_rx_.id;
     packet->command = packet_rx_.command;
@@ -251,7 +252,8 @@ void Oscup::unpack() {
 
 
 void Oscup::resetRX() {
-    /* @brief resets RXBuffer and packet_rx_
+    /*
+    * @brief resets RXBuffer and packet_rx_
     */
     packet_rx_.id = 0;
     packet_rx_.command = 0;
@@ -266,7 +268,8 @@ void Oscup::resetRX() {
 
 
 void Oscup::resetTX() {
-    /* @brief resets TXBuffer and packet_tx_
+    /*
+    * @brief resets TXBuffer and packet_tx_
     */
     packet_tx_.command = 0;
     packet_tx_.length = 0;

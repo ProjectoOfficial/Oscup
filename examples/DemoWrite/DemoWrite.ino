@@ -42,20 +42,6 @@ void loop() {
 
   //remember always to free dangling pointers!
   free(arr2);
-
-  uint8_t read_error = 1;
-  packet_t read_packet;
-  while (millis() - wait_time < 200 && read_error != (uint8_t)ErrorCodes::OK){
-    error = oscup.read(&read_packet);
-  }
-
-  if(error == (uint8_t)ErrorCodes::OK){
-    String str = "GG bro";
-    oscup.write((uint8_t)TxCommands::CONFIRM, str.length(),(char*) str.c_str());
-  }else{
-    String str = "Mannaggia";
-    oscup.write((uint8_t)TxCommands::SHARE, str.length(),(char*) str.c_str());    
-  }
   delay(2000);
 }
 

@@ -121,6 +121,8 @@ class packet_t:
         if buffer[2] < 5:
             return ErrorCodes.UNPACK_ERROR
         
+        self.buff = buffer
+
         self.id = buffer[0]
         self.command = buffer[1]
         self.length = buffer[2]
@@ -209,6 +211,11 @@ class packet_t:
         
         return data
 
+    
+    @staticmethod
+    def translate_bytes(array: bytearray):
+        print(''.join("{} ".format(hex(x)) for x in array))
+
 
 class Oscup:
 
@@ -225,7 +232,7 @@ class Oscup:
         self.baudrate = baudrate
         self.intr_alloc_flags = 0
         self.serialWriter = serial.Serial(port=com_port, baudrate=baudrate, timeout=0.01)
-
+        
 
     def write(self, command: int, length: int, payload: bytearray):
         '''

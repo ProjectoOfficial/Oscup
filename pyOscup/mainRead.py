@@ -6,6 +6,7 @@ Version: ALPHA 1.2.0
 '''
 
 from pyOscup import Oscup
+from pyOscup import packet_t
 from pyOscup import ErrorCodes, TxCommands
 from struct import unpack
 id = 0x1C
@@ -23,7 +24,7 @@ while True:
         print("Data incoming:")
         id, command, length, payload, crc = packet.getParams()
         print("id: {} - command: {} - length: {}".format(hex(id), command, length))
-        print("payload: {}".format(payload))
+        print("payload: {}".format(packet_t.translate_bytes(payload)))
         if command == TxCommands.SHARE:
             print("long long value: {}".format(unpack('Q', bytearray(payload[:8]))))
         print("crc: {}".format(crc))

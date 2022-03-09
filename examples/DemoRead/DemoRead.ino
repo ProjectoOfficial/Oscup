@@ -33,11 +33,12 @@ void loop() {
     errore = oscup.read(&packet);
   }
 
-  delay(20);
+  delay(5);
 
   if (errore != (uint8_t)ErrorCodes::OK) {
-    String str = "No Data";
-    oscup.write((uint8_t)TxCommands::SHARE, str.length() , (char *)str.c_str());
+    uint64_t err = errore;
+    char *arr3 = uint64_toBytes(err);
+    oscup.write((uint8_t)0x03, sizeof(uint64_t), arr3);
   } else {
     if (packet.length == 0) {
       String str = "empty";
@@ -45,7 +46,7 @@ void loop() {
     } else {
       uint64_t l = packet.length;
       char *arr2 = uint64_toBytes(l);
-      oscup.write((uint8_t)TxCommands::CONFIRM, sizeof(uint64_t), arr2);
+      oscup.write((uint8_t)TxCommands::CONFIRM, packet.length, packet.payload);
     }
   }
   delay(1000);
