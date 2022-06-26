@@ -2,7 +2,7 @@
 Oscup: Open Source Custom Uart Protocol
 This Software was release under: GPL-3.0 License
 Copyright � 2022 Daniel Rossi
-Version: 1.2.2
+Version: 1.2.3
 '''
 
 from pyOscup import Oscup
