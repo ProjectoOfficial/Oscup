@@ -3,14 +3,15 @@
 
     This software is provided AS IS, no Warranties!
 
-    Copyright © 2021 Projecto - Dott. Daniel Rossi, Dott. Riccardo Salami
+    Copyright © 2022 Projecto - Dott. Daniel Rossi
     License GPL-V3
 
-    Version: 1.2.0
+    @version: 1.2.2
 */
 
 #include <stdlib.h>
-#include "Oscup.h"
+#include "oscup.h"
+#define LED 19
 
 uint8_t id = 0x5D;
 
@@ -20,6 +21,14 @@ Oscup oscup = Oscup(id);
 void setup() {
   //it is mandatory to call begin() for starting UART
   oscup.begin(115200);
+
+  for(int i=0;i<10;++i){
+    digitalWrite(LED, !digitalRead(LED));
+    delay(100);
+  }
+  
+  digitalWrite(LED, LOW);
+  
 }
 
 unsigned long start_time = millis();
@@ -47,6 +56,7 @@ void loop() {
       uint64_t l = packet.length;
       char *arr2 = uint64_toBytes(l);
       oscup.write((uint8_t)TxCommands::CONFIRM, packet.length, packet.payload);
+      digitalWrite(LED, HIGH);
     }
   }
   delay(1000);

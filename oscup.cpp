@@ -1,8 +1,8 @@
 /*
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
-* Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 1.2.0
+* Copyright � 2022 Daniel Rossi
+* Version: 1.2.2
 */
 
 #include "Oscup.h"
@@ -21,7 +21,7 @@ Oscup::Oscup(uint8_t id, uart_port_t port, int RXPin, int TXPin) {
     id_ = id;
 
     // UART init
-    _uart_port = port;
+    uart_port_ = port;
     uart_rxd_pin_ = RXPin;
     uart_txd_pin_ = TXPin;
     uart_rts_pin_ = UART_RTS_PIN;
@@ -43,7 +43,7 @@ Oscup::Oscup(uint8_t id, uart_port_t port, int RXPin, int TXPin) {
 void Oscup::begin(const uint32_t baudrate){
     baudrate_ = baudrate;
 
-    _uart_config = {
+    uart_config_ = {
         .baud_rate = baudrate,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
@@ -51,9 +51,9 @@ void Oscup::begin(const uint32_t baudrate){
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
 
-    uart_driver_install(_uart_port, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags_);
-    uart_param_config(_uart_port, &_uart_config);
-    uart_set_pin(_uart_port, uart_txd_pin_, uart_rxd_pin_, uart_rts_pin_, uart_cts_pin_);
+    uart_driver_install(uart_port_, UART_BUFFER_LENGTH, UART_BUFFER_LENGTH, 0, NULL, intr_alloc_flags_);
+    uart_param_config(uart_port_, &uart_config_);
+    uart_set_pin(uart_port_, uart_txd_pin_, uart_rxd_pin_, uart_rts_pin_, uart_cts_pin_);
 }
 
 
@@ -104,7 +104,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         return error;
 
     bufferize(&packet_tx_);
-    uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
+    uart_write_bytes(uart_port_, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
 
     uint16_t crc;
     int cont = 0;
@@ -114,7 +114,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
         resetRX();
 
         if((get_timer() - start_time) >= RETRY_INTERVAL * cont){
-            uart_read_bytes(_uart_port, (uint8_t *) &RXBuffer_, FIX_PACKET_LENGTH, 10);
+            uart_read_bytes(uart_port_, (uint8_t *) &RXBuffer_, FIX_PACKET_LENGTH, 10);
             sleep(1);
             unpack();
             crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
@@ -122,7 +122,7 @@ uint8_t Oscup::write(uint8_t command, uint8_t length, char* payload) {
             if (packet_rx_.command == (uint8_t)RxCommands::ACK)
                 break;
             sleep(10);
-            uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH); //if NACK or empty
+            uart_write_bytes(uart_port_, (const char*)TXBuffer_, FIX_PACKET_LENGTH); //if NACK or empty
             cont++;
         }
     } 
@@ -190,7 +190,7 @@ uint8_t Oscup::read(packet_t *packet) {
     * 
     *  @return it returns feedback on reading result
     */
-    uart_flush(_uart_port);
+    uart_flush(uart_port_);
     uint16_t crc;
     resetRX(); 
     resetTX();
@@ -198,31 +198,32 @@ uint8_t Oscup::read(packet_t *packet) {
     packet_tx_.id = id_;
     packet_tx_.command = (uint8_t)RxCommands::NACK;
 
-    int exit_code = uart_read_bytes(_uart_port, (uint8_t*) &RXBuffer_, FIX_PACKET_LENGTH, 100); 
+    int exit_code = uart_read_bytes(uart_port_, (uint8_t*) RXBuffer_, FIX_PACKET_LENGTH, 100); 
 
     if (exit_code == ESP_FAIL) {
         bufferize(&packet_tx_);
-        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
+        uart_write_bytes(uart_port_, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::NO_DATA;
     }
 
     unpack();
     sleep(5);
+
+    if(packet_rx_.length <= FIX_PACKET_LENGTH - MAX_PAYLOAD_LENGTH)
+        return (uint8_t)ErrorCodes::LENGTH_ERROR;
+
     crc = computeCRC(RXBuffer_, FIX_PACKET_LENGTH - 2);
 
     if (packet_rx_.crc != crc) {
         bufferize(&packet_tx_);
-        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
+        uart_write_bytes(uart_port_, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
         return (uint8_t)ErrorCodes::CRC_ERROR;
     }
     else {
         packet_tx_.command = (uint8_t)RxCommands::ACK;
         bufferize(&packet_tx_);
-        uart_write_bytes(_uart_port, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
+        uart_write_bytes(uart_port_, (const char*)TXBuffer_, FIX_PACKET_LENGTH);
     }
-
-    if(packet_rx_.length <= FIX_PACKET_LENGTH - MAX_PAYLOAD_LENGTH)
-        return (uint8_t)ErrorCodes::LENGTH_ERROR;
 
     packet->id = packet_rx_.id;
     packet->command = packet_rx_.command;

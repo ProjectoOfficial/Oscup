@@ -1,8 +1,8 @@
 '''
 Oscup: Open Source Custom Uart Protocol
 This Software was release under: GPL-3.0 License
-Copyright � 2021 Daniel Rossi & Riccardo Salami
-Version: ALPHA 1.2.0
+Copyright � 2022 Daniel Rossi 
+Version: 1.2.2
 '''
 
 from pyOscup import Oscup
@@ -14,14 +14,14 @@ from time import time, sleep
 from pyOscup import TxCommands
 id = 0x1C
 baudrate = 115200
-port = "COM8"
+port = "COM3"
 oscup = Oscup(id, baudrate, port)
 
 while True:
     val = 1234
 
-    valbyte = val.to_bytes(4, 'big')
-    error = oscup.write(TxCommands.SHARE ,len(valbyte) ,valbyte)
+    valbyte = val.to_bytes(4, 'little')
+    error = oscup.write(TxCommands.SHARE, len(valbyte)*2, valbyte)
 
     error = ErrorCodes.NO_DATA
     start = time()

@@ -1,8 +1,8 @@
 /*
 * Oscup: Open Source Custom Uart Protocol
 * This Software was release under: GPL-3.0 License
-* Copyright � 2021 Daniel Rossi & Riccardo Salami
-* Version: ALPHA 1.2.0
+* Copyright � 2022 Daniel Rossi 
+* Version: 1.2.2
 */
 
 #ifndef OSCUP_H_
@@ -115,8 +115,8 @@ class Oscup {
         char RXBuffer_[FIX_PACKET_LENGTH];
         char TXBuffer_[FIX_PACKET_LENGTH];
 
-        uart_config_t _uart_config;
-        uart_port_t _uart_port;        
+        uart_config_t uart_config_;
+        uart_port_t uart_port_;        
 
         int uart_rxd_pin_;
         int uart_txd_pin_;

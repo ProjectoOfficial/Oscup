@@ -1,16 +1,16 @@
 '''
 Oscup: Open Source Custom Uart Protocol
 This Software was release under: GPL-3.0 License
-Copyright � 2021 Daniel Rossi & Riccardo Salami
-Version: ALPHA 1.2.0
+Copyright � 2022 Daniel Rossi 
+Version: 1.2.2
 '''
 
 from setuptools import setup, find_packages
 
 setup(
     name='pyOscup', 
-    version='1.2.0', 
-    author="Daniel Rossi & Riccardo Salami",
+    version='1.2.2', 
+    author="Daniel Rossi",
     description="pyOscup is a computer interface to communicate with Oscup protocol",
     url="https://github.com/ProjectoOfficial/Oscup",
     packages=find_packages(),
