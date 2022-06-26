@@ -249,7 +249,7 @@ class Oscup:
 
         TX = packet_t(self.id)
         TX.pack(command, length, payload)
-        if TX.getBuff() != None:
+        if TX.getBuff() is not None:
             self.serialWriter.write(TX.getBuff())
         else:
             return ErrorCodes.NULLPOINTER

@@ -20,8 +20,8 @@ oscup = Oscup(id, baudrate, port)
 while True:
     val = 1234
 
-    valbyte = val.to_bytes(4, 'little')
-    error = oscup.write(TxCommands.SHARE, len(valbyte)*2, valbyte)
+    valbyte = val.to_bytes(8, 'little')
+    error = oscup.write(TxCommands.SHARE, len(valbyte), valbyte)
 
     error = ErrorCodes.NO_DATA
     start = time()
