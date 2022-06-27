@@ -6,7 +6,7 @@
     Copyright © 2022 Projecto - Dott. Daniel Rossi
     License GPL-V3
 
-    @version 1.2.3
+    @version 1.2.2
 
     @brief this example sketch uses oscup for writing data on UART. It initializes Oscup with a
     fixed ID and Baudrate and initializes the protocol inside void setup function.

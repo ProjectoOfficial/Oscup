@@ -6,7 +6,7 @@
     Copyright © 2022 Projecto - Dott. Daniel Rossi
     License GPL-V3
 
-    @version: 1.2.3
+    @version: 1.2.2
 */
 
 #include <stdlib.h>
