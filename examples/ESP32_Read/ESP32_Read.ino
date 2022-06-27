@@ -6,7 +6,7 @@
     Copyright © 2022 Projecto - Dott. Daniel Rossi
     License GPL-V3
 
-    @version: 1.2.2
+    @version: 1.2.4
 
     For running this example you must use 2 ESP32 connected one to each other.
     Let's call them ESP1 and ESP2. 

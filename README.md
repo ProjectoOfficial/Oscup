@@ -1,6 +1,6 @@
 # Oscup: Open Source Custom UART Protocol
  ![License](https://badgen.net/badge/license/GPL-3.0/red?icon=github)
- ![Release](https://badgen.net/badge/release/v1.2.2/green?icon=github)
+ ![Release](https://badgen.net/badge/release/v1.2.4/green?icon=github)
  
  
  Contents
